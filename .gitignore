@@ -1,0 +1,6 @@
+# caches do Kopernicus/MM e saídas temporárias
+GameData/GargantuaSystem/Cache/
+*.bin
+__pycache__/
+.venv/
+dist/
