@@ -21,3 +21,11 @@
   - tracking station carregou sem tela preta. Foco em Gargantua: disco + lente + anel de fótons renderizados (docs/screenshots/phase2_tracking_station.png). Nenhum erro do Singularity.
 - Pendências visuais (fase 3/5): as faixas do disco estão regulares demais e o disco está largo e escuro comparado ao filme. Ajustar `gen_textures.py` e testar de novo.
 - Não testado ainda: DistanceFactor ≠ 1, voo real até o SOI.
+
+## 2026-10-16 — Disco de acreção v2 (pedido do usuário: "parece anelzinho", mais brilho)
+- Causa das faixas regulares: o termo `sin(v*140)` no gerador antigo.
+- Novo gerador: ruído espectral via FFT (tileável), anisotrópico ao longo de u (estrias que seguem a órbita), 3 camadas (estrias, filamentos, aglomerados) + cisalhamento por linha (rotação diferencial, `np.roll` mantém o tile) + faixas de poeira escura + borda externa irregular. Paleta: branco-quente → dourado → laranja → marrom.
+- Brilho: o shader faz rgb*alpha com teto 1. Subi rgb e alpha no disco interno (lum. média do 1/5 interno: 160 → 198 de 255).
+- Textura 4096x1024 PNG. Recarrega trocando de cena (o Singularity relê o arquivo no Init), sem reiniciar o jogo.
+- Verificado na tracking station: vista de cima e de lado com o arco da lente (docs/screenshots/disk_v2_*.png).
+- Automação: o teclado só chega ao KSP depois de um clique no jogo. A câmera do mapa só gira com `rel` (movimento relativo) segurando o botão direito. O botão vermelho no canto superior direito da tracking station volta ao Space Center.

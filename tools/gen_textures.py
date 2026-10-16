@@ -16,47 +16,80 @@ OUT = Path(__file__).resolve().parent.parent / "GameData" / "GargantuaSystem" / 
 SEED = 1014  # fixed seed so builds are reproducible
 
 
-def periodic_noise(rng, w, h, octaves=5):
-    """Fractal noise that tiles horizontally (u = disk angle must wrap)."""
-    out = np.zeros((h, w))
-    amp, total = 1.0, 0.0
-    for o in range(octaves):
-        cw, ch = 4 * 2**o, 2 + 2**o
-        grid = rng.random((ch + 1, cw))
-        grid = np.concatenate([grid, grid[:, :1]], axis=1)  # wrap column -> seamless in u
-        ys = np.linspace(0, ch, h)
-        xs = np.linspace(0, cw, w, endpoint=False)
-        y0, x0 = np.floor(ys).astype(int).clip(0, ch - 1), np.floor(xs).astype(int)
-        fy, fx = (ys - y0)[:, None], (xs - x0)[None, :]
-        fy, fx = fy * fy * (3 - 2 * fy), fx * fx * (3 - 2 * fx)
-        a, b = grid[y0][:, x0], grid[y0][:, x0 + 1]
-        c, d = grid[y0 + 1][:, x0], grid[y0 + 1][:, x0 + 1]
-        out += amp * ((a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy)
-        total += amp
-        amp *= 0.55
-    return out / total
+def spectral_noise(rng, h, w, beta, aniso, kmin=0.0, kmax=0.5):
+    """Gaussian noise with a 1/k^beta spectrum, normalised to 0..1.
+
+    Built with an FFT, so it tiles in both axes (u = disk angle must wrap).
+    aniso > 1 stretches features along u: long streaks following the orbit instead of blobs.
+    """
+    fy = np.fft.fftfreq(h)[:, None]
+    fx = np.fft.fftfreq(w)[None, :]
+    k = np.sqrt((fx * aniso) ** 2 + fy**2)
+    amp = np.where((k > kmin) & (k <= kmax), 1.0 / np.maximum(k, 1e-6) ** beta, 0.0)
+    phase = rng.random((h, w)) * 2 * np.pi
+    field = np.fft.ifft2(amp * np.exp(1j * phase)).real
+    field -= field.min()
+    return field / field.max()
 
 
-def accretion_disk(w=2048, h=512):
+def shear(img, v, strength):
+    """Differential rotation: inner rows are shifted further along u than outer rows.
+
+    np.roll per row keeps the texture seamless in u. Turns straight streaks into tight spiral filaments.
+    """
+    out = np.empty_like(img)
+    w = img.shape[1]
+    for row, vv in enumerate(v[:, 0]):
+        out[row] = np.roll(img[row], int(strength * w * (1 - vv) ** 2))
+    return out
+
+
+def accretion_disk(w=4096, h=1024):
     """Radial-mapped disk (Singularity useRadialTextureMapping = True).
 
     u = angle (wraps), v = 0 at the inner edge -> 1 at the outer edge.
     Unity's LoadImage puts PNG row 0 at v = 1, so the inner edge is the bottom row.
-    Look: thin, pale yellow-white disk like the film (no Doppler beaming), creative liberty on detail.
+    Target look: the film's Gargantua (white-hot inner disk, turbulent orange/brown filaments,
+    ragged dusty outer edge, no Doppler beaming). The detail itself is creative liberty.
+    The shader outputs rgb * alpha clamped to 1, so "brighter" means rgb and alpha close to 1.
     """
     rng = np.random.default_rng(SEED)
     v = np.linspace(1, 0, h)[:, None]  # image top = outer edge
-    streaks = periodic_noise(rng, w, h, 6)
-    # thin concentric lanes: noise stretched along the angle
-    lanes = 0.5 + 0.5 * np.sin(v * 140 + 6 * periodic_noise(rng, w, h, 3))
-    heat = np.clip((1 - v) ** 1.6, 0, 1)  # hottest at the inner edge
-    inner_fade = np.clip(v / 0.03, 0, 1)
-    outer_fade = np.clip((1 - v) / 0.35, 0, 1) ** 1.5
-    brightness = (0.35 + 0.65 * heat) * (0.55 + 0.3 * streaks + 0.15 * lanes)
-    alpha = np.clip(inner_fade * outer_fade * (0.6 + 0.4 * streaks), 0, 1)
-    hot, warm = np.array([1.0, 0.96, 0.86]), np.array([1.0, 0.62, 0.30])
-    color = warm + (hot - warm) * heat[..., None]
+
+    # matter: long streaks + finer filaments + large clumps, all following the orbit
+    streaks = spectral_noise(rng, h, w, beta=1.6, aniso=10, kmin=0.002)
+    filaments = spectral_noise(rng, h, w, beta=1.1, aniso=24, kmin=0.01)
+    clumps = spectral_noise(rng, h, w, beta=2.2, aniso=4, kmin=0.001)
+    matter = shear(0.45 * streaks + 0.35 * filaments + 0.20 * clumps, v, 0.35)
+    matter = (matter - matter.mean()) / matter.std()
+
+    # dust lanes: dark, absorbing, mostly in the cooler outer disk
+    dust = shear(spectral_noise(rng, h, w, beta=1.8, aniso=14, kmin=0.003), v, 0.35)
+    dust = np.clip((dust - 0.55) / 0.25, 0, 1) * np.clip(v / 0.5, 0.15, 1)
+
+    # temperature: very hot at the inner edge, cooling outwards; matter perturbs it locally
+    temp = np.clip((1 - v) ** 0.9 + 0.08 * matter, 0, 1)
+    stops = np.array([0.0, 0.25, 0.5, 0.75, 0.9, 1.0])
+    palette = np.array([
+        [0.30, 0.12, 0.05],  # cold dusty rim, dark brown
+        [0.75, 0.36, 0.12],  # orange-brown
+        [1.00, 0.62, 0.28],  # orange
+        [1.00, 0.86, 0.62],  # pale gold
+        [1.00, 0.96, 0.88],  # near white
+        [1.00, 1.00, 1.00],  # white hot
+    ])
+    color = np.stack([np.interp(temp, stops, palette[:, c]) for c in range(3)], axis=-1)
+
+    brightness = (0.8 + 0.35 * temp) * np.clip(1 + 0.18 * matter, 0.45, 1.35) * (1 - 0.65 * dust)
     rgb = np.clip(color * brightness[..., None], 0, 1)
+
+    # opacity: thick and bright inside, ragged dusty outer edge driven by the same matter noise
+    inner_edge = np.clip(v / 0.012, 0, 1)
+    rim = np.clip((0.88 + 0.10 * matter - v) / 0.2, 0, 1)
+    alpha = inner_edge * rim * np.clip(0.95 + 0.12 * matter, 0.65, 1) * (1 - 0.4 * dust)
+    alpha[0] = 0  # outermost row fully transparent so the disk never ends in a hard ring
+    alpha = np.clip(alpha, 0, 1)
+
     rgba = np.concatenate([rgb, alpha[..., None]], axis=2)
     return (rgba * 255).round().astype(np.uint8)
 
@@ -68,14 +101,19 @@ def solid(rgba, size=8):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     disk = accretion_disk()
-    # self-check: seamless in u, inner edge brighter than outer edge, transparent at the outer rim
-    assert disk.shape == (512, 2048, 4)
-    assert np.abs(disk[:, 0].astype(int) - disk[:, -1].astype(int)).mean() < 12, "disk not seamless in u"
-    assert disk[-20:, :, :3].mean() > disk[:20, :, :3].mean(), "inner edge should be brighter"
+    # self-check: seamless in u, bright opaque inner disk, transparent outer rim
+    h = disk.shape[0]
+    assert disk.shape == (1024, 4096, 4)
+    lum = disk[..., :3].astype(float).mean(axis=2) * disk[..., 3] / 255
+    wrap = np.abs(lum[:, 0] - lum[:, -1]).mean()
+    step = np.abs(np.diff(lum, axis=1)).mean()
+    assert wrap < 3 * step, f"disk not seamless in u (wrap {wrap:.1f} vs step {step:.1f})"
+    inner, outer = lum[-h // 5:].mean(), lum[: h // 5].mean()
+    assert inner > 180 and inner > 3 * outer, f"inner disk should dominate ({inner:.0f} vs {outer:.0f})"
     assert disk[0, :, 3].max() == 0, "outer rim should be fully transparent"
     Image.fromarray(disk, "RGBA").save(OUT / "AccretionDisk.png")
     Image.fromarray(solid((0, 0, 0, 255)), "RGBA").save(OUT / "Black.png")
-    print("ok:", *sorted(p.name for p in OUT.iterdir()))
+    print(f"ok: inner lum {inner:.0f}, outer lum {outer:.0f};", *sorted(p.name for p in OUT.iterdir()))
 
 
 if __name__ == "__main__":
