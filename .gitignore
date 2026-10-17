@@ -4,3 +4,5 @@ GameData/GargantuaSystem/Cache/
 __pycache__/
 .venv/
 dist/
+src/*/bin/
+src/*/obj/

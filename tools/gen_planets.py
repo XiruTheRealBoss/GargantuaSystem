@@ -136,6 +136,18 @@ def save_gray(path, a):
     Image.fromarray((np.clip(a, 0, 1) * 255).round().astype(np.uint8), "L").save(path)
 
 
+def save_height16(path, a):
+    """16-bit height for KopernicusExpansion's VertexHeightMap16: value = (G << 8 | B) / 65535.
+
+    8-bit maps gave ~24 m steps on Mann/Edmunds (and land strips in Miller's 3 m deep sea).
+    """
+    v = (np.clip(a, 0, 1) * 65535).round().astype(np.uint16)
+    rgb = np.stack([np.zeros_like(v), v >> 8, v & 0xFF], axis=-1).astype(np.uint8)
+    Image.fromarray(rgb, "RGB").save(path)
+    back = (rgb[..., 1].astype(np.uint32) << 8 | rgb[..., 2]) / 65535
+    assert np.abs(back - np.clip(a, 0, 1)).max() < 1 / 65535, "16-bit height encoding broken"
+
+
 def save_rgb(path, rgb, alpha=None):
     a = np.clip(rgb, 0, 1)
     if alpha is not None:
@@ -190,68 +202,26 @@ def check_biomes_in_cfg(body, palette):
 
 
 # ---------------------------------------------------------------- Miller
-MILLER_R = 650_000
-MILLER_WAVE_H = 1200.0  # ~4000 ft in the film; kept in metres (creative liberty on the scale)
-MILLER_HEIGHT = dict(offset=-3.0, deformity=1260.0)  # floor = -3 m (knee-deep), crest ~ +1250 m
+# The giant waves are NOT terrain any more: they move, so the plugin (src/GargantuaWaves) draws them.
+# Terrain is just the shallow sea floor (VertexHeightOffset in Miller.cfg); this makes the sea colour and biomes.
 MILLER_BIOMES = {
     "Shallows": "#2E6F8E",
-    "WaveSlopes": "#4FA3C7",
-    "WaveCrests": "#E8F4F8",
     "PolarShallows": "#1B3A4B",
 }
 
 
-def miller_height(lat, lon, xyz, waves=5):
-    """Ocean floor a few metres under the surface plus giant, static tidal waves.
-
-    Each wave is a long crest bent like an arc, steep concave face on the leading (east) side, long gentle
-    back on the west side, tapering out before the poles. Waves never overlap: the highest one wins.
-    """
-    rng = np.random.default_rng(7)
-    h = np.zeros(lat.shape, np.float32)
-    for k in range(waves):
-        lon0 = -np.pi + 2 * np.pi * (k + rng.uniform(0.2, 0.8)) / waves
-        crest = lon0 + 0.22 * lat**2 + 0.04 * np.sin(3 * lat + k)
-        d = (np.angle(np.exp(1j * (lon - crest)))) * MILLER_R * np.maximum(np.cos(lat), 0.05)
-        along = fbm(xyz, 3.0, 4, 100 + k)  # crest height wobbles along the wave
-        height = MILLER_WAVE_H * (0.7 + 0.45 * along) * smoothstep(np.radians(72), np.radians(45), np.abs(lat))
-        face = np.clip(1 + d / 2600.0, 0, 1) ** 1.6  # d < 0: leading face, ~2.6 km wide
-        back = np.exp(-((d / 14000.0) ** 2))  # d > 0: trailing slope, ~14 km
-        h = np.maximum(h, height * np.where(d < 0, face, back))
-    return h
-
-
 def make_miller(out):
-    W, H = 8192, 4096  # ~0.5 km/px: the wave face is only a few km wide
-    height = render(W, H, miller_height)
-    floor_m = MILLER_HEIGHT["offset"]
-    enc = height / MILLER_HEIGHT["deformity"]  # 0 = ocean floor at offset (-3 m)
-    assert enc.max() <= 1.0 and height.max() > 0.8 * MILLER_WAVE_H, f"wave height {height.max():.0f} m"
-    check_seamless(enc, "Miller height")
-    save_gray(out / "Miller_height.png", enc)
-
-    h4 = downsample(height, 2)  # 4096x2048 for colour, normals and biomes
-    lat = (0.5 - (np.arange(h4.shape[0]) + 0.5) / h4.shape[0])[:, None] * np.pi * np.ones((1, h4.shape[1]))
-    streak = render(4096, 2048, lambda la, lo, xyz: fbm(xyz * np.float32([1, 4, 1]), 12.0, 4, 300))
-    t = np.clip(h4 / MILLER_WAVE_H, 0, 1)
-    water = ramp(t, [0, 0.05, 0.45, 0.8, 0.92, 1.0],
-                 # film: dark grey-green water, almost no blue; white foam only on the crests
-                 [[0.11, 0.15, 0.16], [0.14, 0.19, 0.20], [0.22, 0.29, 0.31],
-                  [0.40, 0.48, 0.50], [0.80, 0.84, 0.85], [0.96, 0.97, 0.97]])
-    water *= (0.92 + 0.16 * streak)[..., None]
-    foam = smoothstep(0.85, 0.97, t)[..., None]
-    rgb = water * (1 - foam) + foam * np.float32(0.97)
-    save_rgb(out / "Miller_color.png", rgb, 1 - 0.6 * t)  # alpha = gloss: shiny sea, rougher wave faces
-    nm = normal_map(h4, MILLER_R, 1.0)
-    save_rgb(out / "Miller_normal.png", nm[..., :3], nm[..., 3])
-
-    idx = np.zeros(h4.shape, np.uint8)
-    idx[h4 > 40] = 1
-    idx[h4 > 0.75 * MILLER_WAVE_H] = 2
-    idx[(np.abs(lat) > np.radians(72)) & (idx == 0)] = 3
+    W, H = 4096, 2048
+    streak = render(W, H, lambda la, lo, xyz: fbm(xyz * np.float32([1, 4, 1]), 12.0, 4, 300))
+    # film: dark grey-green water, almost no blue
+    rgb = np.float32([0.14, 0.19, 0.20]) * (0.92 + 0.16 * streak)[..., None]
+    check_seamless(streak, "Miller colour")
+    save_rgb(out / "Miller_color.png", rgb, np.full(streak.shape, 1.0, np.float32))  # alpha = gloss: shiny sea
+    lat = (0.5 - (np.arange(H) + 0.5) / H)[:, None] * np.pi * np.ones((1, W))
+    idx = (np.abs(lat) > np.radians(72)).astype(np.uint8)
     biome_map(downsample_idx(idx, 4), MILLER_BIOMES).save(out / "Miller_biomes.png")
     check_biomes_in_cfg("Miller", MILLER_BIOMES)
-    return f"waves up to {height.max():.0f} m, floor {floor_m} m"
+    return "sea colour and biomes"
 
 
 def downsample_idx(idx, f):
@@ -292,7 +262,7 @@ def make_mann(out):
     enc = (h - MANN_HEIGHT["offset"]) / MANN_HEIGHT["deformity"]
     assert 0 <= enc.min() and enc.max() <= 1, f"Mann height out of range {h.min():.0f}..{h.max():.0f} m"
     check_seamless(enc, "Mann height")
-    save_gray(out / "Mann_height.png", enc)
+    save_height16(out / "Mann_height.png", enc)
 
     t = (h - h.min()) / (h.max() - h.min())
     # low-saturation glacier greys, brighter on top of ridges; ash bands and crevasses darken it
@@ -354,7 +324,7 @@ def make_edmunds(out):
     enc = (h - EDMUNDS_HEIGHT["offset"]) / EDMUNDS_HEIGHT["deformity"]
     assert 0 <= enc.min() and enc.max() <= 1, f"Edmunds height out of range {h.min():.0f}..{h.max():.0f} m"
     check_seamless(enc, "Edmunds height")
-    save_gray(out / "Edmunds_height.png", enc)
+    save_height16(out / "Edmunds_height.png", enc)
 
     t = (h - h.min()) / (h.max() - h.min())
     # muted grey-tan gravel plains, darker brown-grey rock in the ranges, pale tops

@@ -72,17 +72,29 @@ def face(fwd, right, up):
 
 
 def main():
+    check_edges()  # cheap: fail before the slow render
     OUT.mkdir(parents=True, exist_ok=True)
     for name, basis in FACES.items():
         img = face(*basis)
         Image.fromarray((img * 255).round().astype(np.uint8), "RGB").save(OUT / f"Gargantua_{name}.png")
         Image.fromarray(np.zeros((8, 8, 3), np.uint8), "RGB").save(OUT / f"Black_{name}.png")
         print(name, f"brilho médio {img.mean():.4f}", flush=True)
-    # self-check: neighbouring faces agree along the shared edge (+X right edge == +Z left edge)
-    px = np.asarray(Image.open(OUT / "Gargantua_PositiveX.png"), float)
-    pz = np.asarray(Image.open(OUT / "Gargantua_NegativeZ.png"), float)
-    assert np.abs(px[:, -1].mean() - pz[:, 0].mean()) < 5, "cubemap faces don't line up"
+    check_edges()
 
+
+def check_edges():
+    """Pixel-exact seam check: each face edge must point at the same 3D directions as its neighbour's edge
+    (a rotated or mirrored face fails here; comparing average brightness did not)."""
+    v = np.linspace(1, -1, 64)[:, None]
+
+    def edge(face, u):
+        fwd, right, up = FACES[face]
+        d = fwd + u * right + v * up
+        return d / np.linalg.norm(d, axis=-1, keepdims=True)
+
+    ring = ["PositiveX", "NegativeZ", "NegativeX", "PositiveZ"]  # going right around the horizon
+    for a, b in zip(ring, ring[1:] + ring[:1]):
+        assert np.allclose(edge(a, 1), edge(b, -1)), f"seam {a}/{b} does not line up"
 
 if __name__ == "__main__":
     main()

@@ -94,6 +94,23 @@ def accretion_disk(w=4096, h=1024):
     return (rgba * 255).round().astype(np.uint8)
 
 
+def miller_wave(w=1024, h=256):
+    """Texture of the moving giant wave (plugin GargantuaWaves). u = along the crest (repeats ~5 km),
+    v = across: 0 = far end of the back slope, 0.9 = crest, 1 = foot of the steep front face.
+    Unity puts PNG row 0 at v = 1, so the front face is the TOP of the image."""
+    rng = np.random.default_rng(SEED + 1)
+    v = np.linspace(1, 0, h)[:, None]
+    streaks = spectral_noise(rng, h, w, beta=1.4, aniso=4, kmin=0.002)    # FFT noise wraps: repeats along the crest
+    drips = spectral_noise(rng, h, w, beta=1.2, aniso=0.15, kmin=0.004) ** 3  # vertical: foam running down the face
+    base = np.array([0.20, 0.27, 0.28]) * (0.85 + 0.3 * streaks[..., None])
+    crest = np.exp(-((v - 0.9) / 0.012) ** 2)                 # thin white foam line on the crest
+    face_foam = np.clip((v - 0.9) / 0.1, 0, 1) * np.clip(drips * 2.5, 0, 1)
+    back_foam = np.clip((v - 0.6) / 0.3, 0, 1) * np.clip((streaks - 0.55) * 3, 0, 1) * 0.5
+    foam = np.clip(crest + face_foam + back_foam, 0, 1)[..., None]
+    rgb = base * (1 - foam) + 0.92 * foam
+    return (np.concatenate([rgb, np.ones((h, w, 1))], axis=2) * 255).round().astype(np.uint8)
+
+
 def solid(rgba, size=8):
     return np.full((size, size, 4), rgba, dtype=np.uint8)
 
@@ -115,6 +132,10 @@ def main():
     (OUT.parent / "PluginData").mkdir(exist_ok=True)
     Image.fromarray(disk, "RGBA").save(OUT.parent / "PluginData" / "AccretionDisk.png")
     Image.fromarray(solid((0, 0, 0, 255)), "RGBA").save(OUT / "Black.png")
+    Image.fromarray(solid((255, 255, 255, 255)), "RGBA").save(OUT / "White.png")
+    wave = miller_wave()
+    assert np.abs(wave[:, 0].astype(int) - wave[:, -1].astype(int)).mean() < 12, "wave texture not seamless in u"
+    Image.fromarray(wave, "RGBA").save(OUT / "MillerWave.png")
     print(f"ok: inner lum {inner:.0f}, outer lum {outer:.0f};", *sorted(p.name for p in OUT.iterdir()))
 
 
