@@ -19,7 +19,7 @@ namespace GargantuaSystem
         const int WaveCount = 5;
         const double CrestHeight = 1200;   // m (o filme fala em ~4000 pés); liberdade criativa na escala
         const double Speed = 100;          // m/s no equador: uma onda passa por cada ponto a cada ~2,3 h
-        const double WarnTime = 180;       // s: a onda chegando para a aceleração do tempo e avisa
+        const double WarnDistance = 50000; // m: a crista a essa distância dispara o aviso (o warp para antes)
         const double FaceWidth = 2600;     // m: frente íngreme
         const double BackWidth = 14000;    // m: escala da encosta de trás (gaussiana)
         const double BackLength = 40000;   // m: onde a encosta de trás já está a ~0 m
@@ -98,12 +98,13 @@ namespace GargantuaSystem
         {
             if (v == null || v.mainBody != body || Math.Abs(v.latitude) > MaxLat || v.altitude > 3 * CrestHeight) return;
             double eta = TimeToNextCrest(v.latitude, v.longitude, t);
-            // num passo de física o tempo pode pular mais que WarnTime em warp alto: a janela cresce com o warp
-            double window = Math.Max(WarnTime, TimeWarp.CurrentRate * TimeWarp.fixedDeltaTime * 3);
-            if (eta > window || t - lastWarnUT < 600) return;
+            double groundSpeed = Speed * Math.Cos(v.latitude * Math.PI / 180);
+            // num passo de física o warp alto pode pular a onda inteira: para o warp antes, com folga
+            if (TimeWarp.CurrentRateIndex > 0 && eta <= Math.Max(WarnDistance / groundSpeed, TimeWarp.CurrentRate * TimeWarp.fixedDeltaTime * 3))
+                TimeWarp.SetRate(0, true);
+            if (eta * groundSpeed > WarnDistance || t - lastWarnUT < 600) return;
             lastWarnUT = t;
-            if (TimeWarp.CurrentRateIndex > 0) TimeWarp.SetRate(0, true);
-            double km = eta * Speed * Math.Cos(v.latitude * Math.PI / 180) / 1000;
+            double km = eta * groundSpeed / 1000;
             ScreenMessages.PostScreenMessage(KSP.Localization.Localizer.Format("#LOC_GargSys_WaveWarning", km.ToString("F0")),
                 10f, ScreenMessageStyle.UPPER_CENTER);
         }
