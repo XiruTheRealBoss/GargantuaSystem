@@ -19,7 +19,7 @@ namespace GargantuaSystem
         const int WaveCount = 5;
         const double CrestHeight = 1200;   // m (o filme fala em ~4000 pés); liberdade criativa na escala
         const double Speed = 100;          // m/s no equador: uma onda passa por cada ponto a cada ~2,3 h
-        const double WarnDistance = 50000; // m: a crista a essa distância dispara o aviso (o warp para antes)
+        const double WarnDistance = 33000; // m: a crista a essa distância dispara o aviso (o warp para antes)
         const double FaceWidth = 2600;     // m: frente íngreme
         const double BackWidth = 14000;    // m: escala da encosta de trás (gaussiana)
         const double BackLength = 40000;   // m: onde a encosta de trás já está a ~0 m

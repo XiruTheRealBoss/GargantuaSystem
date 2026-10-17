@@ -159,8 +159,8 @@
 - Verificado no mapa (docs/screenshots/pulsar_jets_v2.png).
 - A pasta `Downloads/Anubis` do usuário só tem `AnubisJets.cfg`; o `Jets.unity3d` fica no pacote principal do Cosmic Serenity ("All Rights Reserved"), então não foi usado.
 
-## 2026-10-17 — Aviso da onda a 50 km
+## 2026-10-17 — Aviso da onda a 50 km (depois 33 km)
 - Antes: o aviso disparava pela janela de tempo (≥180 s ou 3 passos de física do warp atual) e, em warp alto, mostrava distâncias enormes.
-- Agora: o warp para quando a crista está a ≤50 km do chão ou a até 3 passos de física (o que vier primeiro). A mensagem só aparece com a crista a ≤50 km. `WarnDistance = 50000` em MillerWaves.cs.
+- Agora: o warp para quando a crista está a ≤50 km do chão ou a até 3 passos de física (o que vier primeiro). A mensagem só aparece com a crista a ≤50 km. `WarnDistance` em MillerWaves.cs (33000 m, pedido do usuário).
 - O texto em inglês já existia (`en-us` em Localization.cfg); o KSP escolhe pelo idioma do jogo.
 - Não testado no jogo (precisa esperar uma crista com a nave no lado certo de Miller).
