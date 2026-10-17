@@ -29,3 +29,21 @@
 - Textura 4096x1024 PNG. Recarrega trocando de cena (o Singularity relê o arquivo no Init), sem reiniciar o jogo.
 - Verificado na tracking station: vista de cima e de lado com o arco da lente (docs/screenshots/disk_v2_*.png).
 - Automação: o teclado só chega ao KSP depois de um clique no jogo. A câmera do mapa só gira com `rel` (movimento relativo) segurando o botão direito. O botão vermelho no canto superior direito da tracking station volta ao Space Center.
+
+## 2026-10-16 — Fase 3 (planetas) — descobertas
+- Gargantua passou a 1e30 kg (decisão do usuário: ~44 km/s do wormhole até Miller).
+- Corpos: Miller (idx 18), GargantuaNeutronStar (19), Mann (20), Pantagruel (21), Edmunds (22). SOIs: Miller 14,5 Mm, Mann 68 Mm, Edmunds 83 Mm, Pantagruel 99 Gm, estrela de nêutrons 7,9 Gm.
+- **Saves: o Kopernicus resolve a órbita pelo `IDENT` (= identifier do corpo), não pelo `REF`.** Os identifiers `GargantuaSystem/<Corpo>` nunca podem mudar entre versões, senão as naves dos jogadores mudam de corpo.
+- **Template Kerbin + removeAllPQSMods** tira também: PQSMod_AerialPerspectiveMaterial (sem ele o PQS renderiza branco/preto em voo), PQSMod_OceanFX (água sem textura animada) e PQSMod_TextureAtlas. Os dois primeiros foram readicionados.
+- **No 1.12 o material do PQS de Kerbin é TriplanarAtlas**, que lê a cor de vértice como peso de blend. Com VertexColorMap é preciso usar `materialType = AtmosphericTriplanarZoomRotation`.
+- Texturas BUILTIN do KSP usadas no detalhe: Eeloo (Mann), laytheSand/Duna Floor/dresHigh (Edmunds), sea-water1..8 + quiet (Miller). Os nomes vieram de configs públicas de outros packs (são assets do próprio jogo).
+- **Mapeamento lon → u (atributos/height do KSP): u = 1 − ((lon − 90°) mod 360)/360** (eixo espelhado). As ondas de Miller estão em lon = 90 − u·360 (onda 2 ≈ −104°). Verificado: nave em lon −103 vê a onda.
+- O planejador de manobras do KSP 1.12 lança ArgumentOutOfRange em sistemas com várias estrelas (TransferTypeSimple.SetupCBNames). É bug do jogo, já relatado pelo Kcalbeloh. Vai para o README.
+- Testes: save separado `saves/gargantua_test` (cópia do padrão) com naves editadas no persistent.sfs: Teste Miller/Mann/Edmunds em órbita, Onda A–E em Miller, Solo Mann/Edmunds.
+- Automação: `tools/ksp_test_flight.sh` (o menu engole cliques nos primeiros ~10 s; Esc só funciona depois de um clique no jogo; a câmera gira com `rel` + botão direito).
+- Realismo (pedido do usuário): referências do filme. Mann = geleira Svínafellsjökull (gelo cinza-esbranquiçado enrugado, fendas, cinza vulcânica, céu encoberto). Edmunds = planície rochosa com matacões e cordilheiras (cena final). Miller = água rasa cinza-esverdeada (Máfabót).
+  - Mann: dobras ridged (~60 km) + montículos (~15 km) + platôs + fendas Worley (~12 km) + faixas de cinza. Céu via `AtmosphereFromGround.waveLength = 0.62,0.61,0.60` (o template Duna deixava vermelho).
+  - Edmunds: cordilheiras ridged em faixas + morros ridged (~30 km, 900 m) + salinas + dunas pequenas + cânions raros. Biomas renomeados (RockyPlains/Mountains/SaltFlats/DuneFields/Canyons).
+  - Miller: OceanFX readicionado com sea-water1..8 (água animada), oceanOpacity 0.55 (mar raso), céu cinza-azulado.
+  - Verificado no jogo com naves pousadas (altura calculada do heightmap com o mapeamento espelhado de longitude).
+- Pendente: encostas de Edmunds ainda suaves de perto (resolução 4096 = ~0,46 km/px). Opções: heightmap 8k ou patch Parallax/scatter de rochas (fase 4).

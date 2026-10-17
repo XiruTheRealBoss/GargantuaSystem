@@ -10,7 +10,6 @@ Todos os mapas são equiretangulares (2:1) amostrados em 3D na esfera, sem costu
 distorção nos polos. As cores dos biomas são conferidas contra os .cfg dos corpos no fim.
 """
 import re
-import zlib
 import sys
 from pathlib import Path
 
@@ -236,8 +235,9 @@ def make_miller(out):
     streak = render(4096, 2048, lambda la, lo, xyz: fbm(xyz * np.float32([1, 4, 1]), 12.0, 4, 300))
     t = np.clip(h4 / MILLER_WAVE_H, 0, 1)
     water = ramp(t, [0, 0.05, 0.45, 0.8, 0.92, 1.0],
-                 [[0.16, 0.30, 0.36], [0.20, 0.38, 0.44], [0.30, 0.50, 0.56],
-                  [0.48, 0.66, 0.70], [0.80, 0.88, 0.90], [0.96, 0.98, 1.0]])
+                 # cool teal water, so the warm disk light doesn't turn the wave faces brown
+                 [[0.14, 0.30, 0.38], [0.18, 0.40, 0.50], [0.28, 0.56, 0.68],
+                  [0.50, 0.74, 0.84], [0.86, 0.94, 0.97], [1.0, 1.0, 1.0]])
     water *= (0.92 + 0.16 * streak)[..., None]
     foam = smoothstep(0.85, 0.97, t)[..., None]
     rgb = water * (1 - foam) + foam * np.float32(0.97)
@@ -259,8 +259,10 @@ def downsample_idx(idx, f):
 
 
 # ---------------------------------------------------------------- Mann
+# Reference: the film shot Mann's planet on the Svinafellsjokull glacier (Iceland): crumpled grey-white ice,
+# folded ridges and hummocks, deep crevasses, dark streaks of volcanic ash, under a white overcast sky.
 MANN_R = 500_000
-MANN_HEIGHT = dict(offset=-500.0, deformity=5000.0)
+MANN_HEIGHT = dict(offset=-800.0, deformity=6000.0)
 MANN_BIOMES = {
     "IcePlains": "#DDE8F0",
     "PressureRidges": "#9FB7CC",
@@ -271,36 +273,41 @@ MANN_BIOMES = {
 
 
 def mann_fields(lat, lon, xyz):
-    p = warp(xyz, 0.35, 1.5, 11)
-    base = fbm(p, 2.0, 6, 12)
-    ridges = ridged(warp(xyz, 0.2, 3.0, 13), 2.5, 5, 23)
-    highland = smoothstep(0.50, 0.65, fbm(p, 1.0, 4, 41))
-    # polygonal crack network (ice plates), only inside "crevasse field" regions
-    field = smoothstep(0.48, 0.58, fbm(p, 1.6, 3, 43))
-    cracks = (1 - smoothstep(0.0, 0.07, worley_edges(warp(xyz, 0.05, 6.0, 44), 14.0, 45))) * field
-    h = 900 * base + 2400 * ridges**2.5 * (0.4 + 0.6 * highland) + 1100 * highland - 320 * cracks
-    return h.astype(np.float32), cracks.astype(np.float32), highland.astype(np.float32)
+    p = warp(xyz, 0.3, 1.5, 11)
+    sheet = fbm(p, 1.8, 5, 12)  # broad ice sheet swells (~250 km)
+    folds = ridged(warp(xyz, 0.25, 6.0, 13), 8.0, 5, 23)  # folded pressure ridges (~60 km)
+    hummocks = ridged(warp(xyz, 0.08, 20.0, 14), 30.0, 4, 24)  # crumpled hummocky ice (~15 km)
+    highland = smoothstep(0.55, 0.58, fbm(p, 1.2, 4, 41))  # ice plateaus with steep cliff edges
+    field = smoothstep(0.45, 0.55, fbm(p, 2.0, 3, 43))
+    cracks = (1 - smoothstep(0.0, 0.05, worley_edges(warp(xyz, 0.04, 10.0, 44), 40.0, 45))) * field
+    ash = smoothstep(0.55, 0.80, fbm(warp(xyz * np.float32([1, 5, 1]), 0.2, 4.0, 46), 6.0, 4, 47))
+    h = 1200 * sheet + 1800 * folds**2 + 450 * hummocks + 900 * highland - 450 * cracks
+    return (h.astype(np.float32), cracks.astype(np.float32), highland.astype(np.float32),
+            ash.astype(np.float32), folds.astype(np.float32))
 
 
 def make_mann(out):
     W, H = 4096, 2048
-    h, cracks, highland = render(W, H, mann_fields)
+    h, cracks, highland, ash, folds = render(W, H, mann_fields)
     enc = (h - MANN_HEIGHT["offset"]) / MANN_HEIGHT["deformity"]
     assert 0 <= enc.min() and enc.max() <= 1, f"Mann height out of range {h.min():.0f}..{h.max():.0f} m"
     check_seamless(enc, "Mann height")
     save_gray(out / "Mann_height.png", enc)
 
     t = (h - h.min()) / (h.max() - h.min())
-    rgb = ramp(t, [0, 0.3, 0.6, 1.0],
-               [[0.62, 0.70, 0.78], [0.80, 0.86, 0.91], [0.90, 0.94, 0.97], [1.0, 1.0, 1.0]])
-    rgb = rgb * (1 - 0.55 * cracks[..., None]) + cracks[..., None] * np.float32([0.10, 0.18, 0.28])
+    # low-saturation glacier greys, brighter on top of ridges; ash bands and crevasses darken it
+    ice = ramp(t, [0, 0.3, 0.6, 1.0],
+               [[0.58, 0.60, 0.62], [0.74, 0.76, 0.78], [0.86, 0.87, 0.88], [0.95, 0.95, 0.96]])
+    ice *= (0.92 + 0.12 * folds)[..., None]
+    rgb = ice * (1 - 0.55 * ash[..., None]) + ash[..., None] * 0.55 * np.float32([0.30, 0.30, 0.31])
+    rgb = rgb * (1 - 0.8 * cracks[..., None]) + cracks[..., None] * 0.8 * np.float32([0.14, 0.16, 0.18])
     save_rgb(out / "Mann_color.png", rgb, np.full(h.shape, 0.55, np.float32))
     nm = normal_map(downsample(h, 2), MANN_R, 1.5)
     save_rgb(out / "Mann_normal.png", nm[..., :3], nm[..., 3])
 
     lat = (0.5 - (np.arange(H) + 0.5) / H)[:, None] * np.pi * np.ones((1, W))
     idx = np.zeros(h.shape, np.uint8)
-    idx[t > 0.55] = 1
+    idx[folds > 0.55] = 1
     idx[cracks > 0.5] = 2
     idx[highland > 0.6] = 3
     idx[np.abs(lat) > np.radians(70)] = 4
@@ -310,116 +317,79 @@ def make_mann(out):
 
 
 # ---------------------------------------------------------------- Edmunds
+# Reference: the film's closing shot of Edmunds: a boulder-strewn grey-tan rocky plain with jagged mountain
+# ranges on the horizon (Mojave-like), not a sand sea. Dunes and salt flats are small, local features.
 EDMUNDS_R = 600_000
-EDMUNDS_HEIGHT = dict(offset=-1200.0, deformity=5000.0)
+EDMUNDS_HEIGHT = dict(offset=-1200.0, deformity=6500.0)
 EDMUNDS_BIOMES = {
-    "DuneSeas": "#E0B070",
-    "Mesas": "#8A4A2A",
+    "RockyPlains": "#8C7B66",
+    "Mountains": "#4A3E34",
     "SaltFlats": "#F2EEE4",
-    "RockyHighlands": "#6B5A4A",
+    "DuneFields": "#E0B070",
     "Canyons": "#3A2418",
 }
 
 
 def edmunds_fields(lat, lon, xyz):
-    p = warp(xyz, 0.4, 1.4, 51)
-    base = fbm(p, 1.8, 6, 52)
-    sand = smoothstep(0.50, 0.58, fbm(p, 1.1, 4, 53))  # 1 = dune sea (~1/3 of the surface)
-    # dunes: parallel crests bent by the wind field; lon multiplier is an integer so it wraps at 180°
+    p = warp(xyz, 0.35, 1.2, 51)
+    plains = fbm(p, 1.5, 5, 52)
+    belts = smoothstep(0.44, 0.58, fbm(warp(xyz, 0.5, 1.0, 61), 2.0, 3, 62))  # where mountain ranges run
+    peaks = ridged(warp(xyz, 0.15, 4.0, 63), 5.0, 6, 64) ** 2.2  # jagged ridgelines
+    hills = ridged(warp(xyz, 0.05, 12.0, 65), 16.0, 5, 65)  # rugged ~30 km hills and bluffs everywhere
+    basin = smoothstep(0.36, 0.28, plains) * (1 - belts)  # dry lake beds
+    dune_mask = smoothstep(0.64, 0.72, fbm(p, 2.5, 3, 66)) * (1 - belts) * (1 - basin)
+    # dunes: crests bent by the wind; lon multiplier is an integer so it wraps at 180°
     dunes = 0.5 + 0.5 * np.sin(lon * 700 + lat * 260 + 25 * fbm(xyz, 5.0, 3, 54))
-    plateau = fbm(warp(xyz, 0.3, 2.0, 55), 2.4, 5, 56)
-    mesa_mask = smoothstep(0.56, 0.60, plateau) * (1 - sand)
-    mesa = np.floor(plateau * 7) / 7  # terraced steps on the plateaus
-    # branching canyon systems: warped cell borders, only in canyon regions and never in the sand
-    region = smoothstep(0.50, 0.60, fbm(p, 1.3, 3, 57))
-    canyon = (1 - smoothstep(0.0, 0.05, worley_edges(warp(xyz, 0.12, 3.0, 58), 6.0, 59))) * region * (1 - sand)
-    salt = smoothstep(0.40, 0.34, base) * (1 - sand) * (1 - mesa_mask)
-    h = (1400 * base + 1700 * mesa_mask * mesa + 70 * sand * dunes - 900 * canyon - 200 * salt)
-    return (h.astype(np.float32), sand.astype(np.float32), mesa_mask.astype(np.float32),
-            canyon.astype(np.float32), salt.astype(np.float32), dunes.astype(np.float32))
+    region = smoothstep(0.62, 0.70, fbm(p, 1.3, 3, 57)) * (1 - dune_mask)
+    canyon = (1 - smoothstep(0.0, 0.02, worley_edges(warp(xyz, 0.12, 3.0, 58), 6.0, 59))) * region
+    h = (900 * plains + 3600 * peaks * belts + 900 * hills**1.5 + 60 * dunes * dune_mask
+         - 700 * canyon - 200 * basin)
+    return (h.astype(np.float32), belts.astype(np.float32), peaks.astype(np.float32), canyon.astype(np.float32),
+            basin.astype(np.float32), dune_mask.astype(np.float32), dunes.astype(np.float32), hills.astype(np.float32))
 
 
 def make_edmunds(out):
     W, H = 4096, 2048
-    h, sand, mesa, canyon, salt, dunes = render(W, H, edmunds_fields)
+    h, belts, peaks, canyon, basin, dune_mask, dunes, hills = render(W, H, edmunds_fields)
     enc = (h - EDMUNDS_HEIGHT["offset"]) / EDMUNDS_HEIGHT["deformity"]
     assert 0 <= enc.min() and enc.max() <= 1, f"Edmunds height out of range {h.min():.0f}..{h.max():.0f} m"
     check_seamless(enc, "Edmunds height")
     save_gray(out / "Edmunds_height.png", enc)
 
     t = (h - h.min()) / (h.max() - h.min())
-    rock = ramp(t, [0, 0.35, 0.7, 1.0],
-                [[0.36, 0.22, 0.14], [0.55, 0.36, 0.22], [0.66, 0.46, 0.30], [0.74, 0.60, 0.46]])
-    dune_col = ramp(dunes, [0, 1], [[0.80, 0.58, 0.34], [0.93, 0.76, 0.50]])
-    rgb = rock * (1 - sand[..., None]) + dune_col * sand[..., None]
-    rgb = rgb * (1 - mesa[..., None] * 0.25) + mesa[..., None] * np.float32([0.50, 0.24, 0.13]) * 0.25
-    rgb = rgb * (1 - salt[..., None]) + salt[..., None] * np.float32([0.94, 0.92, 0.86])
+    # muted grey-tan gravel plains, darker brown-grey rock in the ranges, pale tops
+    rock = ramp(t, [0, 0.3, 0.6, 1.0],
+                [[0.42, 0.37, 0.32], [0.56, 0.49, 0.41], [0.50, 0.44, 0.38], [0.70, 0.66, 0.62]])
+    rock *= (0.88 + 0.2 * hills)[..., None]
+    mountain = (belts * smoothstep(0.15, 0.4, peaks))[..., None]
+    rgb = rock * (1 - 0.5 * mountain) + mountain * 0.5 * np.float32([0.34, 0.29, 0.25])
+    dune_col = ramp(dunes, [0, 1], [[0.70, 0.58, 0.42], [0.84, 0.72, 0.54]])
+    rgb = rgb * (1 - dune_mask[..., None]) + dune_col * dune_mask[..., None]
+    rgb = rgb * (1 - basin[..., None]) + basin[..., None] * np.float32([0.86, 0.84, 0.78])
     rgb *= (1 - 0.45 * canyon)[..., None]
     save_rgb(out / "Edmunds_color.png", rgb, np.full(h.shape, 0.2, np.float32))
     nm = normal_map(downsample(h, 2), EDMUNDS_R, 1.5)
     save_rgb(out / "Edmunds_normal.png", nm[..., :3], nm[..., 3])
 
-    idx = np.full(h.shape, 3, np.uint8)  # rocky highlands by default
-    idx[sand > 0.5] = 0
-    idx[mesa > 0.5] = 1
-    idx[salt > 0.5] = 2
+    idx = np.zeros(h.shape, np.uint8)  # rocky plains by default
+    idx[mountain[..., 0] > 0.5] = 1
+    idx[basin > 0.5] = 2
+    idx[dune_mask > 0.5] = 3
     idx[canyon > 0.5] = 4
     biome_map(downsample_idx(idx, 4), EDMUNDS_BIOMES).save(out / "Edmunds_biomes.png")
     check_biomes_in_cfg("Edmunds", EDMUNDS_BIOMES)
     return f"height {h.min():.0f}..{h.max():.0f} m"
 
 
-# ---------------------------------------------------------------- PQS detail textures
-# The triplanar PQS shader multiplies these tiling textures by the vertex colour (from *_color.png),
-# so they are near-white with only fine structure: the colour comes from the planet map.
-DETAILS = {
-    # body: (stretch along x for streaks, contrast, fog ramp from ground colour to sky colour)
-    "Miller": (6.0, 0.10, [[0.30, 0.45, 0.50], [0.55, 0.68, 0.75]]),
-    "Mann": (1.5, 0.12, [[0.70, 0.78, 0.86], [0.80, 0.86, 0.95]]),
-    "Edmunds": (1.0, 0.22, [[0.70, 0.50, 0.32], [0.86, 0.72, 0.56]]),
-}
-
-
-def tile_noise(rng, n, stretch, beta=1.4):
-    """Seamless 2D noise (FFT), 0..1; stretch > 1 makes streaks along x (water, wind)."""
-    fy = np.fft.fftfreq(n)[:, None]
-    fx = np.fft.fftfreq(n)[None, :]
-    k = np.sqrt((fx * stretch) ** 2 + fy**2)
-    amp = np.where(k > 0, 1 / np.maximum(k, 1e-6) ** beta, 0)
-    f = np.fft.ifft2(amp * np.exp(2j * np.pi * rng.random((n, n)))).real
-    return (f - f.min()) / (f.max() - f.min())
-
-
-def make_details(body, n=1024):
-    stretch, contrast, ramp_cols = DETAILS[body]
-    rng = np.random.default_rng(zlib.crc32(body.encode()))  # stable seed (hash() is salted per run)
-    t = tile_noise(rng, n, stretch)
-    tex = np.clip(0.85 + contrast * (t - 0.5) * 2, 0, 1)
-    out = OUT / body
-    save_gray(out / f"{body}_detail.png", tex)
-    h = t * 4.0  # fake height for a gentle tiling bump map
-    gx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) / 2
-    gy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) / 2
-    nrm = np.stack([-gx, -gy, np.ones_like(h)], -1)
-    nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True)
-    enc = nrm * 0.5 + 0.5
-    save_rgb(out / f"{body}_detail_nrm.png", enc, enc[..., 0])
-    ramp_img = ramp(np.linspace(0, 1, 256), [0, 1], ramp_cols)[None].repeat(4, 0)
-    save_rgb(out / f"{body}_fogramp.png", ramp_img)
-    check_seamless(tex, f"{body} detail")
-    return "detail, normal and fog ramp"
-
-
-BODIES = {"miller": make_miller, "mann": make_mann, "edmunds": make_edmunds,
-          "details": lambda out: "; ".join(f"{b}: {make_details(b)}" for b in DETAILS)}
+BODIES = {"miller": make_miller, "mann": make_mann, "edmunds": make_edmunds}
 
 
 def main():
     names = [a.lower() for a in sys.argv[1:]] or list(BODIES)
-    for b in DETAILS:
-        (OUT / b).mkdir(parents=True, exist_ok=True)
     for name in names:
-        print(f"{name}: {BODIES[name](OUT / name.capitalize())}", flush=True)
+        out = OUT / name.capitalize()
+        out.mkdir(parents=True, exist_ok=True)
+        print(f"{name}: {BODIES[name](out)}", flush=True)
 
 
 if __name__ == "__main__":
