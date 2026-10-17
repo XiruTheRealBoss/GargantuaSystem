@@ -18,7 +18,8 @@ namespace GargantuaSystem
         const string BodyName = "Miller";
         const int WaveCount = 5;
         const double CrestHeight = 1200;   // m (o filme fala em ~4000 pés); liberdade criativa na escala
-        const double Speed = 40;           // m/s no equador: uma onda passa por cada ponto ~1 vez por dia Kerbal
+        const double Speed = 100;          // m/s no equador: uma onda passa por cada ponto a cada ~2,3 h
+        const double WarnTime = 180;       // s: a onda chegando para a aceleração do tempo e avisa
         const double FaceWidth = 2600;     // m: frente íngreme
         const double BackWidth = 14000;    // m: escala da encosta de trás (gaussiana)
         const double BackLength = 40000;   // m: onde a encosta de trás já está a ~0 m
@@ -31,6 +32,7 @@ namespace GargantuaSystem
         float rotationSign;                // + ou −, para a rotação andar para leste (frente da onda na frente)
         Transform[] waves;
         double angularSpeed;               // graus/s
+        double lastWarnUT = double.MinValue;
 
         void Start()
         {
@@ -83,8 +85,42 @@ namespace GargantuaSystem
                 w.localRotation = Quaternion.AngleAxis(rotationSign * (float)lon, polarAxis);
             }
             if (active)
+            {
                 foreach (Vessel v in FlightGlobals.VesselsLoaded)
                     if (v.mainBody == body && !v.packed) Push(v, t);
+                Alarm(FlightGlobals.ActiveVessel, t);
+            }
+        }
+
+        /// Em timewarp a nave fica "em trilhos" e a onda passa sem ninguém ver. Quando uma crista vai chegar,
+        /// para a aceleração do tempo e avisa ("isso não é uma montanha").
+        void Alarm(Vessel v, double t)
+        {
+            if (v == null || v.mainBody != body || Math.Abs(v.latitude) > MaxLat || v.altitude > 3 * CrestHeight) return;
+            double eta = TimeToNextCrest(v.latitude, v.longitude, t);
+            // num passo de física o tempo pode pular mais que WarnTime em warp alto: a janela cresce com o warp
+            double window = Math.Max(WarnTime, TimeWarp.CurrentRate * TimeWarp.fixedDeltaTime * 3);
+            if (eta > window || t - lastWarnUT < 600) return;
+            lastWarnUT = t;
+            if (TimeWarp.CurrentRateIndex > 0) TimeWarp.SetRate(0, true);
+            double km = eta * Speed * Math.Cos(v.latitude * Math.PI / 180) / 1000;
+            ScreenMessages.PostScreenMessage(KSP.Localization.Localizer.Format("#LOC_GargSys_WaveWarning", km.ToString("F0")),
+                10f, ScreenMessageStyle.UPPER_CENTER);
+        }
+
+        /// Segundos até a próxima crista passar por (lat, lon). As ondas andam para leste a velocidade angular fixa.
+        public double TimeToNextCrest(double lat, double lon, double t)
+        {
+            double latRad = lat * Math.PI / 180;
+            double crestOffset = (0.22 * latRad * latRad + 0.04 * Math.Sin(3 * latRad)) * 180 / Math.PI;
+            double best = double.MaxValue;
+            for (int k = 0; k < WaveCount; k++)
+            {
+                double crest = k * 360.0 / WaveCount + 23 + angularSpeed * t + crestOffset;
+                double ahead = ((lon - crest) % 360 + 360) % 360; // graus que a crista ainda tem que andar até aqui
+                best = Math.Min(best, ahead / angularSpeed);
+            }
+            return best;
         }
 
         /// Altura da onda (m acima do mar) num ponto, num instante. Mesma fórmula da malha.
@@ -131,6 +167,7 @@ namespace GargantuaSystem
             double crestNow = 23 + angularSpeed * Planetarium.GetUniversalTime();
             double hCrest = WaveHeight(0, crestNow, Planetarium.GetUniversalTime());
             ok &= hCrest > 0.6 * CrestHeight && WaveHeight(0, crestNow + 36, Planetarium.GetUniversalTime()) < 1;
+            ok &= Math.Abs(TimeToNextCrest(0, crestNow + 1, Planetarium.GetUniversalTime()) - 1 / angularSpeed) < 1;
             if (!ok) Debug.LogError("[GargantuaSystem] MillerWaves: self-check do perfil FALHOU (crista " + hCrest.ToString("F0") + " m)");
         }
 

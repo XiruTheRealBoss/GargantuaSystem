@@ -248,30 +248,46 @@ def mann_fields(lat, lon, xyz):
     folds = ridged(warp(xyz, 0.25, 6.0, 13), 8.0, 5, 23)  # folded pressure ridges (~60 km)
     hummocks = ridged(warp(xyz, 0.08, 20.0, 14), 30.0, 4, 24)  # crumpled hummocky ice (~15 km)
     highland = smoothstep(0.55, 0.58, fbm(p, 1.2, 4, 41))  # ice plateaus with steep cliff edges
-    field = smoothstep(0.45, 0.55, fbm(p, 2.0, 3, 43))
-    cracks = (1 - smoothstep(0.0, 0.05, worley_edges(warp(xyz, 0.04, 10.0, 44), 40.0, 45))) * field
-    ash = smoothstep(0.55, 0.80, fbm(warp(xyz * np.float32([1, 5, 1]), 0.2, 4.0, 46), 6.0, 4, 47))
-    h = 1200 * sheet + 1800 * folds**2 + 450 * hummocks + 900 * highland - 450 * cracks
+    field = smoothstep(0.50, 0.60, fbm(p, 2.0, 3, 43))
+    # crevasse fields: sets of PARALLEL cracks (stretched ridged noise), like a real glacier icefall.
+    # (Worley cell borders made a polygon net that read as artificial from orbit.)
+    flow = warp(xyz * np.float32([1, 6, 1]), 0.15, 3.0, 44)
+    cracks = smoothstep(0.82, 0.95, ridged(flow, 30.0, 2, 45)) * field
+    # grey ash/dirt: large swirling patches (strongly warped, not stretched dashes) + broad tone regions
+    ash = smoothstep(0.52, 0.80, fbm(warp(warp(xyz, 0.6, 1.2, 46), 0.4, 3.0, 146), 3.0, 6, 47))
+    h = 1200 * sheet + 1800 * folds**2 + 450 * hummocks + 900 * highland - 120 * cracks
     return (h.astype(np.float32), cracks.astype(np.float32), highland.astype(np.float32),
             ash.astype(np.float32), folds.astype(np.float32))
 
 
 def make_mann(out):
+    # 8K: Mann is mostly bright ice, so at 4K the surface looked blurry up close. Height and the
+    # orbital (scaled) map stay at 4K; only the colour map the terrain uses goes to 8K (DDS, see below).
+    W, H = 8192, 4096
+    h8, cracks8, highland8, ash8, folds8 = render(W, H, mann_fields)
+    h, cracks, highland, ash, folds = (downsample(a, 2) for a in (h8, cracks8, highland8, ash8, folds8))
     W, H = 4096, 2048
-    h, cracks, highland, ash, folds = render(W, H, mann_fields)
     enc = (h - MANN_HEIGHT["offset"]) / MANN_HEIGHT["deformity"]
     assert 0 <= enc.min() and enc.max() <= 1, f"Mann height out of range {h.min():.0f}..{h.max():.0f} m"
     check_seamless(enc, "Mann height")
     save_height16(out / "Mann_height.png", enc)
 
     t = (h - h.min()) / (h.max() - h.min())
-    # low-saturation glacier greys, brighter on top of ridges; ash bands and crevasses darken it
-    ice = ramp(t, [0, 0.3, 0.6, 1.0],
-               [[0.70, 0.72, 0.74], [0.84, 0.85, 0.86], [0.92, 0.93, 0.94], [0.98, 0.98, 0.99]])
-    ice *= (0.92 + 0.12 * folds)[..., None]
-    rgb = ice * (1 - 0.55 * ash[..., None]) + ash[..., None] * 0.55 * np.float32([0.30, 0.30, 0.31])
-    rgb = rgb * (1 - 0.8 * cracks[..., None]) + cracks[..., None] * 0.8 * np.float32([0.14, 0.16, 0.18])
-    save_rgb(out / "Mann_color.png", rgb, np.full(h.shape, 0.55, np.float32))
+    # film (orbit shot): bright white-grey, softly mottled, with streaky grey flow bands; no hard lines
+    def colour(hh, ash_, cracks_, w, hgt):
+        tt = (hh - h.min()) / (h.max() - h.min())
+        mottle = render(w, hgt, lambda la, lo, x: fbm(warp(x, 0.4, 2.0, 48), 5.0, 7, 49))
+        ice = np.float32([0.93, 0.94, 0.95]) * (0.86 + 0.14 * np.clip(tt, 0, 1) ** 0.5)[..., None]
+        tone = render(w, hgt, lambda la, lo, x: fbm(warp(x, 0.5, 1.0, 147), 1.5, 4, 148))
+        ice *= (0.90 + 0.10 * mottle + 0.10 * (tone - 0.5))[..., None]
+        ice = ice * (1 - 0.35 * ash_[..., None]) + ash_[..., None] * 0.35 * np.float32([0.42, 0.43, 0.45])
+        return ice * (1 - 0.35 * cracks_[..., None]) + cracks_[..., None] * 0.35 * np.float32([0.45, 0.52, 0.58])
+
+    save_rgb(out / "Mann_color.png", colour(h, ash, cracks, W, H), np.full(h.shape, 0.55, np.float32))  # orbit view (mipmapped PNG)
+    rgb8 = (np.clip(colour(h8, ash8, cracks8, 2 * W, 2 * H), 0, 1) * 255).round().astype(np.uint8)
+    # terrain colour: 8K DXT1 (~16 MB; PNG would be ~100 MB). KSP reads DDS bottom-up, so flip vertically.
+    Image.fromarray(np.ascontiguousarray(rgb8[::-1]), "RGB").save(out / "Mann_color.dds", pixel_format="DXT1")
+    del h8, cracks8, highland8, ash8, folds8, rgb8
     nm = normal_map(downsample(h, 2), MANN_R, 1.5)
     save_rgb(out / "Mann_normal.png", nm[..., :3], nm[..., 3])
 
@@ -306,14 +322,15 @@ def edmunds_fields(lat, lon, xyz):
     belts = smoothstep(0.44, 0.58, fbm(warp(xyz, 0.5, 1.0, 61), 2.0, 3, 62))  # where mountain ranges run
     peaks = ridged(warp(xyz, 0.15, 4.0, 63), 5.0, 6, 64) ** 2.2  # jagged ridgelines
     hills = ridged(warp(xyz, 0.05, 12.0, 65), 16.0, 5, 65)  # rugged ~30 km hills and bluffs everywhere
-    basin = smoothstep(0.36, 0.28, plains) * (1 - belts)  # dry lake beds
-    dune_mask = smoothstep(0.64, 0.72, fbm(p, 2.5, 3, 66)) * (1 - belts) * (1 - basin)
-    # dunes: crests bent by the wind; lon multiplier is an integer so it wraps at 180°
-    dunes = 0.5 + 0.5 * np.sin(lon * 700 + lat * 260 + 25 * fbm(xyz, 5.0, 3, 54))
-    region = smoothstep(0.62, 0.70, fbm(p, 1.3, 3, 57)) * (1 - dune_mask)
-    canyon = (1 - smoothstep(0.0, 0.02, worley_edges(warp(xyz, 0.12, 3.0, 58), 6.0, 59))) * region
-    h = (900 * plains + 3600 * peaks * belts + 900 * hills**1.5 + 60 * dunes * dune_mask
-         - 700 * canyon - 200 * basin)
+    basin = smoothstep(0.38, 0.26, plains) * (1 - belts)  # dry lake beds, soft-edged
+    dune_mask = smoothstep(0.62, 0.82, fbm(warp(xyz, 0.3, 4.0, 65), 2.5, 5, 66)) * (1 - belts) * (1 - basin)  # ragged, soft edges
+    dunes = fbm(warp(xyz * np.float32([1, 3, 1]), 0.3, 6.0, 54), 14.0, 4, 54)  # soft sand ripples (no stripes)
+    # dry valleys: meandering contour lines of warped noise (they branch and wander like riverbeds;
+    # the old Worley cell borders made a polygon net that looked artificial from orbit)
+    region = smoothstep(0.55, 0.65, fbm(p, 1.3, 3, 57)) * (1 - dune_mask) * (1 - basin)
+    canyon = (1 - smoothstep(0.0, 0.012, np.abs(fbm(warp(xyz, 0.25, 2.5, 58), 3.5, 5, 59) - 0.5))) * region
+    h = (900 * plains + 3600 * peaks * belts + 900 * hills**1.5 + 40 * dunes * dune_mask
+         - 450 * canyon - 200 * basin)
     return (h.astype(np.float32), belts.astype(np.float32), peaks.astype(np.float32), canyon.astype(np.float32),
             basin.astype(np.float32), dune_mask.astype(np.float32), dunes.astype(np.float32), hills.astype(np.float32))
 
@@ -327,16 +344,18 @@ def make_edmunds(out):
     save_height16(out / "Edmunds_height.png", enc)
 
     t = (h - h.min()) / (h.max() - h.min())
-    # muted grey-tan gravel plains, darker brown-grey rock in the ranges, pale tops
+    # film: muted grey-tan gravel plains, darker grey-brown ranges; geological colour variation, no hard edges
+    geo = render(W, H, lambda la, lo, x: fbm(warp(x, 0.5, 1.5, 67), 3.0, 6, 68))
     rock = ramp(t, [0, 0.3, 0.6, 1.0],
-                [[0.42, 0.37, 0.32], [0.56, 0.49, 0.41], [0.50, 0.44, 0.38], [0.70, 0.66, 0.62]])
-    rock *= (0.88 + 0.2 * hills)[..., None]
+                [[0.46, 0.41, 0.35], [0.58, 0.51, 0.43], [0.52, 0.46, 0.40], [0.66, 0.62, 0.58]])
+    rock *= (0.88 + 0.16 * hills + 0.10 * (geo - 0.5))[..., None]
+    rock = rock * (1 - 0.25 * geo[..., None]) + 0.25 * geo[..., None] * np.float32([0.62, 0.50, 0.38])
     mountain = (belts * smoothstep(0.15, 0.4, peaks))[..., None]
-    rgb = rock * (1 - 0.5 * mountain) + mountain * 0.5 * np.float32([0.34, 0.29, 0.25])
-    dune_col = ramp(dunes, [0, 1], [[0.70, 0.58, 0.42], [0.84, 0.72, 0.54]])
-    rgb = rgb * (1 - dune_mask[..., None]) + dune_col * dune_mask[..., None]
-    rgb = rgb * (1 - basin[..., None]) + basin[..., None] * np.float32([0.86, 0.84, 0.78])
-    rgb *= (1 - 0.45 * canyon)[..., None]
+    rgb = rock * (1 - 0.45 * mountain) + mountain * 0.45 * np.float32([0.33, 0.29, 0.26])
+    dune_col = np.float32([0.68, 0.59, 0.46]) * (0.94 + 0.12 * dunes)[..., None]  # pale tan, close to the gravel
+    rgb = rgb * (1 - 0.6 * dune_mask[..., None]) + dune_col * 0.6 * dune_mask[..., None]
+    rgb = rgb * (1 - 0.7 * basin[..., None]) + basin[..., None] * 0.7 * np.float32([0.80, 0.78, 0.72])
+    rgb *= (1 - 0.25 * canyon)[..., None]
     save_rgb(out / "Edmunds_color.png", rgb, np.full(h.shape, 0.2, np.float32))
     nm = normal_map(downsample(h, 2), EDMUNDS_R, 1.5)
     save_rgb(out / "Edmunds_normal.png", nm[..., :3], nm[..., 3])

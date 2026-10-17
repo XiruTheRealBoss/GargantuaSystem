@@ -93,3 +93,17 @@
   - Terreno de Miller agora é só o fundo raso (VertexHeightOffset −3). Os biomas de onda saíram. O mapa de cor do espaço não tem mais as linhas das ondas.
   - Limitações: dentro da encosta de trás a malha é de um lado só (por baixo não se vê). Naves "packed" (timewarp/distantes) não são empurradas.
   - Teste: as cristas ficam em lon = k·72 + 23 + ω·UT (ω = 40/R rad/s). O lado iluminado de Miller fica em ~+5..+60°. Calcular pela UT do save; SC/TS também fazem o tempo passar.
+
+## 2026-10-17 — Visual: Mann/Edmunds, atmosferas, disco, onda mais rápida, pedras (Parallax)
+- Mann: mapa de cor 8K em DDS DXT1 (só para o terreno, via VertexColorMap). O PNG 4K continua no scaled. **Gotcha:** o KSP lê DDS de baixo para cima, então o gerador grava a imagem invertida. Conferido: a média de cor no local de pouso bate com o PNG só na versão invertida.
+- Mapas de Mann/Edmunds refeitos sem padrões Worley (davam "redes de polígonos"): vales sinuosos, dunas suaves, salinas, mosaico natural de tons.
+- Scatterer: atmosferas refeitas a partir dos configs stock (Miller = Laythe, Mann/Edmunds = Kerbin com ajustes). As antigas tinham Mie 3–6× maior e ficavam lavadas. godrayStrength 0 em Miller e Mann (os "raios feios" saindo de Gargantua).
+- Disco: volta ao raio externo 2,2E10 m e ganha inclinação de ~27° (normal 0.45,1,0.25). Plano demais em relação às órbitas, ele virava uma faixa fina.
+- Onda de Miller: 40 → 100 m/s. Alarme novo: se a nave ativa está em Miller e a próxima crista chega em ≤ 3 min (ou em menos de 3 passos de física do warp atual), o warp para e aparece "Isso não é uma montanha... é uma onda!".
+- **Parallax Continued** (`Compat/Parallax.cfg`, opcional, NEEDS dos pacotes stock de texturas/scatters):
+  - Terreno: Mann usa as texturas do Eeloo, Edmunds as do Dres. O Parallax multiplica pela cor de vértice, então os mapas de cor do pack continuam valendo.
+  - Pedras: as do Dres nos dois planetas. **Verificado em Edmunds:** pedras pequenas a grandes até o horizonte.
+  - **Verificado em Mann** (após reiniciar): pedras escuras espalhadas pela geleira (docs/screenshots/parallax_mann.png).
+  - **Gotcha:** em Mann, as placas de gelo do Eeloo não apareciam (relevo enrugado demais para o filtro de inclinação, e as poucas placas somem no branco). Trocadas pelas rochas do Dres (detritos de morena) com steepPower 3 (era 8).
+  - Subdivisão PQS 6/500 (como Eeloo/Dres stock).
+  - Mudanças nos scatters só valem depois de reiniciar o KSP.
