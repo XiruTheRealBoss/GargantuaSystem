@@ -113,9 +113,15 @@ namespace GargantuaSystem
             void OnPreCull()
             {
                 Camera src = ScaledCamera.Instance != null ? ScaledCamera.Instance.cam : null;
-                if (src == null) { self.cullingMask = 0; return; }
+                // câmera escalada parada (IVA, troca de cena...): não desenha nem limpa nada
+                if (src == null || !src.isActiveAndEnabled) { self.cullingMask = 0; self.clearFlags = CameraClearFlags.Nothing; return; }
                 self.CopyFrom(src);
                 self.cullingMask = 1 << layer;
+                // Forward, sem HDR/MSAA, direto no alvo final. Copiada como Deferred (o mod Deferred muda a câmera
+                // escalada), a composição de luz sem limpar a cor reaproveitava a imagem velha: céu "congelado" e rachando.
+                self.renderingPath = RenderingPath.Forward;
+                self.allowHDR = false;
+                self.allowMSAA = false;
                 // limpa só a profundidade: o depth da câmera escalada fica num alvo intermediário e não chega aqui
                 // (sem limpar, tudo falhava no teste de profundidade). Limite: os efeitos não somem atrás de planetas.
                 self.clearFlags = CameraClearFlags.Depth;

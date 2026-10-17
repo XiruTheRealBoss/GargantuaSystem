@@ -124,3 +124,11 @@
 - Protótipo de névoa do disco (camadas aditivas acima e abaixo do disco): **descartado**. As camadas viravam faixas listradas, não eram dobradas pela lente e, fora da layer 10, ficavam por cima de tudo. Disco volumétrico de verdade exige shader próprio (asset bundle do Unity 2019.4) e ainda assim não seria dobrado pela lente.
 - Observado: com o Singularity, a partir da órbita da pulsar aparecem faixas escuras no disco visto quase de lado, e uma faixa vertical mais escura no céu. Somem sem o Singularity; não vêm destas mudanças.
 - Build de teste com `-p:DefineConstants=GARGSYS_DEBUG` loga a posição da pulsar na tela (para mirar a câmera nos testes).
+
+## 2026-10-17 — Correção: céu "congelando" e rachando (câmera extra dos jatos)
+- Causa: a câmera dos jatos copiava a câmera escalada com `CopyFrom`, e a escalada roda em **DeferredShading** por causa do mod Deferred. Uma câmera deferred que não limpa a cor (clearFlags Depth) reaproveita a imagem velha na composição de luz, e o céu "congelava" e rachava. A mesma coisa causava a "faixa escura vertical" que eu tinha atribuído ao Singularity.
+- Correção:
+  - a câmera é forçada a Forward, sem HDR e sem MSAA;
+  - quando a câmera escalada não está ativa, a dos jatos não desenha nem limpa nada.
+- Tentado e descartado: CommandBuffer na própria câmera escalada (`AfterForwardAlpha` e `AfterEverything`). Os jatos não apareciam em nenhum dos dois.
+- Verificado: jatos visíveis no mapa e no voo, girando a câmera e alternando mapa/voo, sem imagem velha nem faixa escura (docs/screenshots/pulsar_map_flight.png). O congelamento relatado não aconteceu na sessão de teste.
