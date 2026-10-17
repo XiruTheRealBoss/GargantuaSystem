@@ -147,3 +147,5 @@
 - Órbita da pulsar: 3,5E10 m (e 0.1) → 5E10 m (e 0.05), para ficar fora da esfera.
 - Verificado: perto da pulsar o céu fica limpo e o disco aparece inteiro (docs/screenshots/sky_lens06_pulsar.png). Em Miller (dentro da esfera), disco ok, sem rasgo; restam linhas finas e fracas perto do plano do disco (sky_lens06_miller.png).
 - Efeito colateral: de longe dá para ver a borda da esfera como um círculo em volta de Gargantua (céu um pouco mais escuro dentro, poeira externa do disco cortada).
+- Ajuste (usuário: o buraco negro "só aparece dentro de uma bolha" e a borda cortava um pedaço do disco): esfera `0.8` (5,4E10 m) e pulsar a 6,2E10 m (e 0.03), fora dela. Verificado perto da pulsar: disco inteiro, sem corte, céu sem rasgo (docs/screenshots/sky_lens08_pulsar.png).
+- Limitação do Singularity, sem opção de config: dentro da esfera o céu vem de uma cópia da galáxia capturada no carregamento, sem o escurecimento dinâmico do KSP. Por isso a esfera pode aparecer como um círculo levemente mais escuro ou mais claro em volta de Gargantua. Vai para o README.
