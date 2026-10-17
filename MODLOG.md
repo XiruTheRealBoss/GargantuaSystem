@@ -107,3 +107,20 @@
   - **Gotcha:** em Mann, as placas de gelo do Eeloo não apareciam (relevo enrugado demais para o filtro de inclinação, e as poucas placas somem no branco). Trocadas pelas rochas do Dres (detritos de morena) com steepPower 3 (era 8).
   - Subdivisão PQS 6/500 (como Eeloo/Dres stock).
   - Mudanças nos scatters só valem depois de reiniciar o KSP.
+
+## 2026-10-17 — Estrela de nêutrons como pulsar; protótipo de névoa do disco descartado
+- Estrela de nêutrons agora é `type = Star` (template Sun), como a Anubis do Cosmic Serenity, mas com `givesOffLight = false`. O StarLightSwitcher do Kopernicus só considera estrelas que emitem luz (KopernicusStar.cs), então ela brilha sem roubar a luz de Mann.
+- **Jatos de pulsar** no plugin (`src/GargantuaWaves/ScaledEffects.cs`), com o shader `KSP/Particles/Additive` do próprio KSP:
+  - feixe fino + bainha larga com poeira, em faixas que giram em volta do próprio eixo para encarar a câmera;
+  - halo virado para a câmera;
+  - eixo magnético a 25° do eixo de rotação, girando a cada 5 s (farol, só visual).
+- **Gotchas:**
+  - Lente do Singularity na própria estrela (gravity 0.02, como na Anubis): desenhava uma esfera escura enorme com estrias e escondia tudo. Removida.
+  - `KSP/Particles/Additive` ignora a cor de vértice. Cor e intensidade vão na textura ou no `_TintColor`.
+  - Faixa em trapézio com só 2 triângulos: distorção afim da textura, e o fio e a bainha saíam em ângulos diferentes. Agora são 32 linhas com uma coluna central.
+  - **Singularity apaga efeitos transparentes na layer 10:** a esfera da lente de Gargantua tem raio sqrt(gravity)·120 un. = 6,7E10 m, maior que a órbita da pulsar. Dentro dela o shader repinta a tela com a cena recapturada, e o que não escreve profundidade vira fundo. Solução: layer livre (3) e uma câmera própria logo depois da escalada (CopyFrom no OnPreCull, limpando só a profundidade).
+  - Limitação: os jatos não somem atrás de planetas.
+  - Verificado na vista do mapa a 2,5E9 m da estrela (docs/screenshots/pulsar_jets.png). Não testado no Tracking Station nem na KSC.
+- Protótipo de névoa do disco (camadas aditivas acima e abaixo do disco): **descartado**. As camadas viravam faixas listradas, não eram dobradas pela lente e, fora da layer 10, ficavam por cima de tudo. Disco volumétrico de verdade exige shader próprio (asset bundle do Unity 2019.4) e ainda assim não seria dobrado pela lente.
+- Observado: com o Singularity, a partir da órbita da pulsar aparecem faixas escuras no disco visto quase de lado, e uma faixa vertical mais escura no céu. Somem sem o Singularity; não vêm destas mudanças.
+- Build de teste com `-p:DefineConstants=GARGSYS_DEBUG` loga a posição da pulsar na tela (para mirar a câmera nos testes).
