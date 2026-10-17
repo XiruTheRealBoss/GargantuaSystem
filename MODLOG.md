@@ -49,10 +49,19 @@
 - Pendente: encostas de Edmunds ainda suaves de perto (resolução 4096 = ~0,46 km/px). Opções: heightmap 8k ou patch Parallax/scatter de rochas (fase 4).
 
 ## 2026-10-17 — Atmosferas (Scatterer + EVE), pedido do usuário: "parecem stock", Miller "parece Urano"
-- O EVE instalado já é o build volumétrico do blackrack (Atmosphere.dll de 21/06), igual ao zip em Downloads. Por isso usei camadas 2D, que funcionam nos dois EVEs, e não copiei nada do pacote (é early access e não é redistribuível).
+- CORREÇÃO: o EVE instalado é o EVE Redux 1.11.7.2 (CKAN), não o volumétrico. O zip do blackrack (Atmosphere.dll de 150 KB) é outro build. O "acesso negado" ao instalar era o KSP aberto travando as DLLs, não permissão (o usuário tem controle total). Backups: ksp-eve, ksp-boulderco.
 - Scatterer: **Scatterer_atmosphere/Scatterer_ocean precisam ser nós raiz próprios.** `@Scatterer_atmosphere:FOR[...]` casa com o nó de CADA arquivo de config (7 cópias). Já o planetsList precisa ser patch (`@Scatterer_planetsList`).
 - `sunsUseIntensityCurves = True` usa a intensidade da luz scaled da estrela principal. Mudado para False em todos.
 - **Oceano do Scatterer em Miller deixa a cena inteira preta** (céu e água), mesmo com o Gargantua como sol. Desligado (hasOcean = False). O oceano stock foi tingido de cinza-esverdeado (Material color/colorFromSpace, fog, AerialRampKerbin2).
 - Nuvens EVE (`tools/gen_clouds.py`): Miller ~72% encoberto (o "Urano liso" virou um mundo de nuvens, como a foto 5 do filme), Mann lâminas "congeladas" ~11%, Edmunds cúmulos ~10%.
 - Resultado verificado: Miller com céu branco encoberto e água escura (filme, foto 3); Mann com céu frio azul-acinzentado e gelo branco; Edmunds com horizonte de deserto.
 - Disco de acreção movido para PluginData (o KSP não carrega 16 MB à toa no GameDatabase).
+
+## 2026-10-17 — Nuvens volumétricas (EVE 2.3.3 raymarched, instalado pelo usuário) + oceano Scatterer
+- Black screen anterior: **não era o oceano**. Eram duas coisas: (1) a nave afundada a −2 m deixava a câmera embaixo d'água; (2) a Onda E (lon −103) e a Onda G (−36) estão no **lado noturno** de Miller, que é fixo por causa da maré travada. O lado iluminado fica em ~+5° a +60° de longitude. Testar sempre nessa faixa.
+- Oceano do Scatterer religado em Miller: AMP 1, vento 8, água cinza-esverdeada, modo subaquático claro (transparencyDepth 30, darknessDepth 600). Ondas reais com reflexo verificadas.
+- Nuvens volumétricas: `Configs/Compat/EVE/VolumetricClouds.cfg` com `:NEEDS[StockVolumetricClouds]`. As 2D ficam como fallback `:NEEDS[EnvironmentalVisualEnhancements,!StockVolumetricClouds]`. Cobertura em `PluginData/EVE/*_coverage.png` (canal R, AlphaMap). sdfMap é opcional. Reaproveita detail1/uvnoise1 do StockVolumetricClouds.
+- Teto de Miller: densidade 0.08 em 1100 m deixava a superfície quase noite. Ficou 0.025 em 1700–2300 m.
+- Onda gigante (+48,6°) vista da Onda G (+49,8°, ~11 km na frente da face): parede cinza-azulada sumindo na névoa (docs/screenshots/miller_giant_wave.png).
+- Atenção: BoulderCo (configs 2D antigos do EVE) continua instalado junto com o StockVolumetricClouds. O readme do blackrack manda remover. Backup em ksp-boulderco.
+- Não verificado no jogo: as camadas volumétricas de Mann e Edmunds (sem erro no log).

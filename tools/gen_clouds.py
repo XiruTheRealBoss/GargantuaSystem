@@ -15,6 +15,8 @@ import numpy as np
 from gen_planets import check_seamless, fbm, render, ridged, save_gray, save_rgb, smoothstep, warp
 
 OUT = Path(__file__).resolve().parent.parent / "GameData" / "GargantuaSystem" / "Textures" / "EVE"
+# Volumetric (raymarched) EVE reads coverage maps from disk like the stock pack does: PluginData, R channel.
+OUT_VOL = OUT.parent.parent / "PluginData" / "EVE"
 
 
 def miller(lat, lon, xyz):
@@ -56,11 +58,13 @@ def detail(n=512):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    OUT_VOL.mkdir(parents=True, exist_ok=True)
     for name, (fn, w) in LAYERS.items():
         bright, cover = render(w, w // 2, fn)
         check_seamless(cover, name)
         rgb = np.repeat(bright[..., None], 3, axis=-1)
         save_rgb(OUT / f"{name}.png", rgb, cover)
+        save_gray(OUT_VOL / f"{name}_coverage.png", cover)
         print(f"{name}: cobertura média {cover.mean():.0%}")
     d = detail()
     check_seamless(d, "cloud detail")
