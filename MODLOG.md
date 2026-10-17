@@ -65,3 +65,14 @@
 - Onda gigante (+48,6°) vista da Onda G (+49,8°, ~11 km na frente da face): parede cinza-azulada sumindo na névoa (docs/screenshots/miller_giant_wave.png).
 - Atenção: BoulderCo (configs 2D antigos do EVE) continua instalado junto com o StockVolumetricClouds. O readme do blackrack manda remover. Backup em ksp-boulderco.
 - Não verificado no jogo: as camadas volumétricas de Mann e Edmunds (sem erro no log).
+
+## 2026-10-17 — Fase 4: wormhole, settings e compatibilidade
+- Wormholes (`Configs/Wormholes/`): GargSysWormholeA (Jool, 6E8 m; Sarnus com OPM; Saturno com RSS/KSRSS) ↔ GargSysWormholeB (Gargantua, 1.5E11 m). Nó `Wormhole{}` do KEX (partner, influenceAltitude 35 km, jumpMaxAltitude 30 km). Superfície afundada (VertexHeightMap offset −9000) para a nave nunca bater. Visual via Singularity (`wormholeTarget`).
+  - **Verificado:** nave em órbita de 20 km da boca A → log "Jumping to GargSysWormholeB" 1 s após carregar; um único salto (sem ping-pong); Gargantua visível do outro lado. SOIs: A 3,9 Mm, B 7,0 Mm.
+  - Atenção: a nave sai a 20 km da boca B, ainda dentro de jumpMaxAltitude. Não voltou sozinha, mas o README deve mandar sair da zona antes de salvar.
+- Settings:
+  - `Wormholes = False` → corpos e objetos Singularity não são criados. **Verificado** (sem GargSys no Kopernicus, sem erros; naves em órbita das bocas são apagadas, como esperado).
+  - `DistanceFactor = 0` (`KerbolAroundGargantua.cfg`, LAST pass): Sun stock → "Kerbol" a 5E12 m; Gargantua → "Sun" (raiz); todos os corpos que orbitavam o Sun → Kerbol; Kerbin carrega na raiz e vai para o Kerbol via PostSpawnOrbit; Singularity e Scatterer (planetsList e sunflare) renomeados. Identifiers mantidos, então os saves continuam válidos. **Verificado:** raiz Sun:0 com SOI ∞, Kerbol SOI 9,9E11, Kerbin com sma 13.599.840 km em volta do Kerbol, Singularity no "Sun", save carregado.
+  - `DisableSkybox` + skybox procedural (`tools/gen_skybox.py`, 6 faces sem costura): só com SigmaReplacements-SkyBox (CKAN; DLL "All Rights Reserved", não empacotada). **Não testado no jogo** (mod não instalado).
+- Principia (`Compat/Principia.cfg`, FIRST): força DistanceFactor 0, Wormholes False e skybox preta. Não testado (Principia não instalado).
+- RSS/KSRSS (`Compat/RSS_KSRSS.cfg`): proteção contra a limpeza de corpos do RSS (renomeia o nó para DontDeleteMe antes e volta depois), wormhole em Saturno, distância ×10 no RSS. Não testado (RSS não instalado).
