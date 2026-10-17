@@ -149,3 +149,12 @@
 - Efeito colateral: de longe dá para ver a borda da esfera como um círculo em volta de Gargantua (céu um pouco mais escuro dentro, poeira externa do disco cortada).
 - Ajuste (usuário: o buraco negro "só aparece dentro de uma bolha" e a borda cortava um pedaço do disco): esfera `0.8` (5,4E10 m) e pulsar a 6,2E10 m (e 0.03), fora dela. Verificado perto da pulsar: disco inteiro, sem corte, céu sem rasgo (docs/screenshots/sky_lens08_pulsar.png).
 - Limitação do Singularity, sem opção de config: dentro da esfera o céu vem de uma cópia da galáxia capturada no carregamento, sem o escurecimento dinâmico do KSP. Por isso a esfera pode aparecer como um círculo levemente mais escuro ou mais claro em volta de Gargantua. Vai para o README.
+
+## 2026-10-17 — Jatos da pulsar de volta, sem câmera extra, e com mais qualidade
+- Com a pulsar fora da esfera da lente (6,2E10 m), os jatos voltam a ser objetos comuns da layer 10. Sem câmera extra e sem command buffer. Vistos através da esfera, atrás de Gargantua, eles somem (o Singularity repinta lá).
+- Usuário: "parece um png de baixa resolução girando". Mudanças:
+  - texturas 256×1024 e 256² com filtro trilinear/anisotrópico;
+  - camada nova de filamentos (14 fios, brilho pulsando em ondas que repetem sem emenda) que escorre para fora via `mainTextureOffset`, em tempo real (`Time.time`, não UT, para não virar borrão no timewarp). O sumiço nas pontas vem da largura em losango, já que a textura rola;
+  - giro de 5 s → 30 s (igual à rotação do corpo).
+- Verificado no mapa (docs/screenshots/pulsar_jets_v2.png).
+- A pasta `Downloads/Anubis` do usuário só tem `AnubisJets.cfg`; o `Jets.unity3d` fica no pacote principal do Cosmic Serenity ("All Rights Reserved"), então não foi usado.
