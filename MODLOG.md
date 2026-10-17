@@ -132,3 +132,10 @@
   - quando a câmera escalada não está ativa, a dos jatos não desenha nem limpa nada.
 - Tentado e descartado: CommandBuffer na própria câmera escalada (`AfterForwardAlpha` e `AfterEverything`). Os jatos não apareciam em nenhum dos dois.
 - Verificado: jatos visíveis no mapa e no voo, girando a câmera e alternando mapa/voo, sem imagem velha nem faixa escura (docs/screenshots/pulsar_map_flight.png). O congelamento relatado não aconteceu na sessão de teste.
+
+## 2026-10-17 — Céu rasgado/congelado: causa é o TAA do Scatterer
+- Sintoma (print do usuário): a galáxia aparece rasgada em blocos verticais e borrada, e o céu parece congelado. Isso continuou mesmo **sem** os jatos.
+- Causa: o TAA (antialiasing temporal) do Scatterer 0.0878, junto com o Singularity e o Deferred. As naves do sistema ficam dentro da esfera da lente de Gargantua (raio 6,7E10 m), onde o Singularity repinta o céu, e o TAA mistura quadros velhos.
+- Correção (na instalação do usuário, fora do mod): `scatterer/config/config.cfg` → `useTemporalAntiAliasing = False`. Backup em `config.cfg.bak_taa`. O SMAA continua ligado. Verificado: vistas de voo limpas (docs/screenshots/sky_taa_off.png).
+- Jatos da pulsar removidos (`ScaledEffects.cs`) enquanto eu procurava a causa. A estrela continua azul e brilhante. A versão com jatos está no commit c5b1e95.
+- README (fase 5): avisar para desligar o TAA do Scatterer.
