@@ -76,3 +76,20 @@
   - `DisableSkybox` + skybox procedural (`tools/gen_skybox.py`, 6 faces sem costura): só com SigmaReplacements-SkyBox (CKAN; DLL "All Rights Reserved", não empacotada). **Não testado no jogo** (mod não instalado).
 - Principia (`Compat/Principia.cfg`, FIRST): força DistanceFactor 0, Wormholes False e skybox preta. Não testado (Principia não instalado).
 - RSS/KSRSS (`Compat/RSS_KSRSS.cfg`): proteção contra a limpeza de corpos do RSS (renomeia o nó para DontDeleteMe antes e volta depois), wormhole em Saturno, distância ×10 no RSS. Não testado (RSS não instalado).
+
+## 2026-10-17 — Correções da revisão/auditoria + onda que varre Miller
+- Estrela de nêutrons: deixou de ser "estrela" (template Minmus, ScaledVersion Vacuum, sem Light). O StarLightSwitcher do Kopernicus escolhe a estrela mais PRÓXIMA da nave, e ela roubava a luz de Mann e da boca B. Verificado: só Gargantua, Pantagruel e Sun ficam como estrelas, e em Mann a estrela ativa é Gargantua.
+- RSS + DF0: Gargantua com ×113 de massa e Kerbol (o Sol) a 5E13 m só nesse modo (SOI do Sol ~1E13 m). Não testado (sem RSS).
+- DF0: também renomeia `celestialBodyName = Sun` (planetsList), `Atmo[Sun]` (Scatterer_atmosphere) e `PQS_MANAGER OBJECT body = Sun` para Kerbol (coroa do BetterKerbol). Não testado no jogo.
+- Wormhole B agora é `+Body[GargSysWormholeA]` (patch FOR separado, no mesmo arquivo). Verificado: B carregada com a mesma SOI de antes.
+- Skybox: o teste agora compara as direções 3D pixel a pixel nas 4 emendas do horizonte (provado que pega uma face espelhada).
+- Heightmaps de Mann e Edmunds em 16 bits (`VertexHeightMap16` do KEX: altura = (G<<8|B)/65535), com self-check de codificação no gerador. Verificado: KEX faz o parse sem erro, e o relevo de Mann aparece normal.
+- **Onda móvel (plugin `GargantuaWaves.dll`, src/GargantuaWaves, net472, `dotnet build -c Release`)**:
+  - 5 malhas (59 mil vértices, uma malha compartilhada) presas ao `pqsController.transform` de Miller e giradas em volta do eixo polar. O ângulo vem de `Planetarium.GetUniversalTime()`. 40 m/s no equador: uma onda por ponto a cada ~5,7 h.
+  - **Gotcha 1:** Rigidbody cinemático na malha → a origem flutuante do KSP desloca todo Rigidbody e a malha se descolou do planeta (ficou invisível embaixo do mar). Sem Rigidbody, girando só o Transform, funciona.
+  - **Gotcha 2:** MeshCollider movido pelo Transform não acorda naves paradas: a onda atravessava. Trocado por interação analítica (mesma fórmula de altura da malha): nave abaixo da superfície é acelerada para (40 m/s leste, subida ∝ profundidade), com no máximo 40 m/s².
+  - **Gotcha 3:** naves boiando ficam a ~−0,1 m → "abaixo da onda" com altura 0 → todas eram arrastadas. Só empurra se a onda tiver ≥ 2 m no ponto.
+  - Verificado: a parede chega, a nave fica parada antes (0 m/s) e é varrida quando a onda chega (Flying Low, 40 m/s, subindo) — docs/screenshots/miller_wave_*.png.
+  - Terreno de Miller agora é só o fundo raso (VertexHeightOffset −3). Os biomas de onda saíram. O mapa de cor do espaço não tem mais as linhas das ondas.
+  - Limitações: dentro da encosta de trás a malha é de um lado só (por baixo não se vê). Naves "packed" (timewarp/distantes) não são empurradas.
+  - Teste: as cristas ficam em lon = k·72 + 23 + ω·UT (ω = 40/R rad/s). O lado iluminado de Miller fica em ~+5..+60°. Calcular pela UT do save; SC/TS também fazem o tempo passar.
