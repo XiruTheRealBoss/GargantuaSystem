@@ -139,3 +139,11 @@
 - Correção (na instalação do usuário, fora do mod): `scatterer/config/config.cfg` → `useTemporalAntiAliasing = False`. Backup em `config.cfg.bak_taa`. O SMAA continua ligado. Verificado: vistas de voo limpas (docs/screenshots/sky_taa_off.png).
 - Jatos da pulsar removidos (`ScaledEffects.cs`) enquanto eu procurava a causa. A estrela continua azul e brilhante. A versão com jatos está no commit c5b1e95.
 - README (fase 5): avisar para desligar o TAA do Scatterer.
+
+## 2026-10-17 — Céu rasgando: causa real é a esfera da lente do Singularity
+- Com o TAA desligado, o céu ainda rasgava perto da pulsar (print do usuário): galáxia em faixas verticais, blocos escuros.
+- Causa: a esfera da lente de Gargantua (raio = scaleEnclosingMesh·sqrt(gravity)·120 un. = 6,7E10 m com scale 1) engolia a pulsar e chegava quase a Mann. Dentro dela, longe do buraco, o traçado de raios do Singularity rasga o céu. Não tem relação com as mudanças no disco: a esfera depende só de `gravity`, que nunca mudou.
+- `scaleEnclosingMesh = 0.6` (4E10 m). Com 0.35 (2,35E10) o céu ficava limpo, mas a esfera cortava a imagem lensada do disco num círculo duro.
+- Órbita da pulsar: 3,5E10 m (e 0.1) → 5E10 m (e 0.05), para ficar fora da esfera.
+- Verificado: perto da pulsar o céu fica limpo e o disco aparece inteiro (docs/screenshots/sky_lens06_pulsar.png). Em Miller (dentro da esfera), disco ok, sem rasgo; restam linhas finas e fracas perto do plano do disco (sky_lens06_miller.png).
+- Efeito colateral: de longe dá para ver a borda da esfera como um círculo em volta de Gargantua (céu um pouco mais escuro dentro, poeira externa do disco cortada).
