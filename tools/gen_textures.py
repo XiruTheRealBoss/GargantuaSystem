@@ -111,7 +111,9 @@ def main():
     inner, outer = lum[-h // 5:].mean(), lum[: h // 5].mean()
     assert inner > 180 and inner > 3 * outer, f"inner disk should dominate ({inner:.0f} vs {outer:.0f})"
     assert disk[0, :, 3].max() == 0, "outer rim should be fully transparent"
-    Image.fromarray(disk, "RGBA").save(OUT / "AccretionDisk.png")
+    # PluginData: o Singularity lê o arquivo direto, e fora daqui o KSP carregaria 16 MB à toa no GameDatabase
+    (OUT.parent / "PluginData").mkdir(exist_ok=True)
+    Image.fromarray(disk, "RGBA").save(OUT.parent / "PluginData" / "AccretionDisk.png")
     Image.fromarray(solid((0, 0, 0, 255)), "RGBA").save(OUT / "Black.png")
     print(f"ok: inner lum {inner:.0f}, outer lum {outer:.0f};", *sorted(p.name for p in OUT.iterdir()))
 

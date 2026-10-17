@@ -235,9 +235,9 @@ def make_miller(out):
     streak = render(4096, 2048, lambda la, lo, xyz: fbm(xyz * np.float32([1, 4, 1]), 12.0, 4, 300))
     t = np.clip(h4 / MILLER_WAVE_H, 0, 1)
     water = ramp(t, [0, 0.05, 0.45, 0.8, 0.92, 1.0],
-                 # cool teal water, so the warm disk light doesn't turn the wave faces brown
-                 [[0.14, 0.30, 0.38], [0.18, 0.40, 0.50], [0.28, 0.56, 0.68],
-                  [0.50, 0.74, 0.84], [0.86, 0.94, 0.97], [1.0, 1.0, 1.0]])
+                 # film: dark grey-green water, almost no blue; white foam only on the crests
+                 [[0.11, 0.15, 0.16], [0.14, 0.19, 0.20], [0.22, 0.29, 0.31],
+                  [0.40, 0.48, 0.50], [0.80, 0.84, 0.85], [0.96, 0.97, 0.97]])
     water *= (0.92 + 0.16 * streak)[..., None]
     foam = smoothstep(0.85, 0.97, t)[..., None]
     rgb = water * (1 - foam) + foam * np.float32(0.97)
@@ -297,7 +297,7 @@ def make_mann(out):
     t = (h - h.min()) / (h.max() - h.min())
     # low-saturation glacier greys, brighter on top of ridges; ash bands and crevasses darken it
     ice = ramp(t, [0, 0.3, 0.6, 1.0],
-               [[0.58, 0.60, 0.62], [0.74, 0.76, 0.78], [0.86, 0.87, 0.88], [0.95, 0.95, 0.96]])
+               [[0.70, 0.72, 0.74], [0.84, 0.85, 0.86], [0.92, 0.93, 0.94], [0.98, 0.98, 0.99]])
     ice *= (0.92 + 0.12 * folds)[..., None]
     rgb = ice * (1 - 0.55 * ash[..., None]) + ash[..., None] * 0.55 * np.float32([0.30, 0.30, 0.31])
     rgb = rgb * (1 - 0.8 * cracks[..., None]) + cracks[..., None] * 0.8 * np.float32([0.14, 0.16, 0.18])

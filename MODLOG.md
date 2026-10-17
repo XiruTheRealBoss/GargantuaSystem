@@ -47,3 +47,12 @@
   - Miller: OceanFX readicionado com sea-water1..8 (água animada), oceanOpacity 0.55 (mar raso), céu cinza-azulado.
   - Verificado no jogo com naves pousadas (altura calculada do heightmap com o mapeamento espelhado de longitude).
 - Pendente: encostas de Edmunds ainda suaves de perto (resolução 4096 = ~0,46 km/px). Opções: heightmap 8k ou patch Parallax/scatter de rochas (fase 4).
+
+## 2026-10-17 — Atmosferas (Scatterer + EVE), pedido do usuário: "parecem stock", Miller "parece Urano"
+- O EVE instalado já é o build volumétrico do blackrack (Atmosphere.dll de 21/06), igual ao zip em Downloads. Por isso usei camadas 2D, que funcionam nos dois EVEs, e não copiei nada do pacote (é early access e não é redistribuível).
+- Scatterer: **Scatterer_atmosphere/Scatterer_ocean precisam ser nós raiz próprios.** `@Scatterer_atmosphere:FOR[...]` casa com o nó de CADA arquivo de config (7 cópias). Já o planetsList precisa ser patch (`@Scatterer_planetsList`).
+- `sunsUseIntensityCurves = True` usa a intensidade da luz scaled da estrela principal. Mudado para False em todos.
+- **Oceano do Scatterer em Miller deixa a cena inteira preta** (céu e água), mesmo com o Gargantua como sol. Desligado (hasOcean = False). O oceano stock foi tingido de cinza-esverdeado (Material color/colorFromSpace, fog, AerialRampKerbin2).
+- Nuvens EVE (`tools/gen_clouds.py`): Miller ~72% encoberto (o "Urano liso" virou um mundo de nuvens, como a foto 5 do filme), Mann lâminas "congeladas" ~11%, Edmunds cúmulos ~10%.
+- Resultado verificado: Miller com céu branco encoberto e água escura (filme, foto 3); Mann com céu frio azul-acinzentado e gelo branco; Edmunds com horizonte de deserto.
+- Disco de acreção movido para PluginData (o KSP não carrega 16 MB à toa no GameDatabase).
