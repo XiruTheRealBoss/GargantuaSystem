@@ -5,8 +5,9 @@ Gargantua with a lensed accretion disk, Miller's water world and its giant tidal
 Edmunds' desert world around the star Pantagruel, an unnamed pulsar, and an optional wormhole near Jool.
 
 > **Português:** pack de planetas do filme *Interstellar*. Instalação, dependências e problemas conhecidos estão
-> abaixo (em inglês). Resumo: instale pelas dependências listadas, faça backup do save e **desligue o TAA do
-> Scatterer** (veja "Known issues").
+> abaixo (em inglês). Resumo: instale pelo CKAN (traz todas as dependências), recomendado: nuvens volumétricas do
+> blackrack (StockVolumetricClouds, fora do CKAN). Faça backup do save e **desligue o TAA do Scatterer**
+> (veja "Known issues").
 
 ## Bodies
 
@@ -22,12 +23,14 @@ Edmunds' desert world around the star Pantagruel, an unnamed pulsar, and an opti
 
 ## Requirements
 
-Required: **Kopernicus**, **ModuleManager**, **Singularity**, **KopernicusExpansion Continued-er** (wormhole
-and 16-bit heightmaps). Harmony comes with Kopernicus.
+Required (CKAN installs them all): **Kopernicus**, **ModuleManager**, **Singularity**, **KopernicusExpansion
+Continued-er** (wormhole and 16-bit heightmaps), **Scatterer** (atmospheres and Miller's ocean), **EVE** (clouds),
+**Parallax Continued** with its stock terrain and scatter textures (terrain detail and rocks on Mann and Edmunds) and
+**SigmaReplacements-SkyBox** (skybox). Harmony comes with Kopernicus.
 
-Optional (patched only when installed): Scatterer, EVE (2D clouds, or volumetric clouds with blackrack's
-StockVolumetricClouds), Parallax Continued with its stock terrain/scatter textures (rocks on Mann and Edmunds),
-SigmaReplacements-SkyBox (custom skybox).
+Recommended (not on CKAN, install by hand): blackrack's raymarched volumetric clouds for EVE with the
+**StockVolumetricClouds** pack. With it, Miller, Mann and Edmunds get volumetric cloud decks; without it they use
+2D clouds.
 
 Tested on: KSP 1.12.5, Kopernicus release-247, Singularity 0.994, ModuleManager 4.2.3, KopernicusExpansion
 Continued-er Beta9.1.1, Scatterer 0.0878, EVE (raymarched, StockVolumetricClouds V4), Parallax Continued,

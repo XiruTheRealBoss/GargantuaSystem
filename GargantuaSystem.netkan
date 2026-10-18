@@ -6,25 +6,53 @@
     "author": "XiruTheRealBoss",
     "$kref": "#/ckan/github/XiruTheRealBoss/GargantuaSystem",
     "$vref": "#/ckan/ksp-avc",
-    "license": [ "MIT", "CC-BY-4.0" ],
-    "tags": [ "planet-pack", "graphics" ],
+    "license": [
+        "MIT",
+        "CC-BY-4.0"
+    ],
+    "tags": [
+        "planet-pack",
+        "graphics"
+    ],
     "depends": [
-        { "name": "Kopernicus" },
-        { "name": "ModuleManager" },
-        { "name": "Singularity" },
-        { "name": "KopernicusExpansionContinueder" }
-    ],
-    "recommends": [
-        { "name": "Scatterer" },
-        { "name": "EnvironmentalVisualEnhancements" }
-    ],
-    "suggests": [
-        { "name": "ParallaxContinued" },
-        { "name": "ParallaxContinued-Terrain-Textures" },
-        { "name": "ParallaxContinued-Scatter-Textures" },
-        { "name": "SigmaReplacements-SkyBox" }
+        {
+            "name": "Kopernicus"
+        },
+        {
+            "name": "ModuleManager"
+        },
+        {
+            "name": "Singularity"
+        },
+        {
+            "name": "KopernicusExpansionContinueder"
+        },
+        {
+            "name": "Scatterer"
+        },
+        {
+            "name": "EnvironmentalVisualEnhancements"
+        },
+        {
+            "name": "ParallaxContinued"
+        },
+        {
+            "name": "ParallaxContinued-Terrain-Textures"
+        },
+        {
+            "name": "ParallaxContinued-Scatter-Textures"
+        },
+        {
+            "name": "SigmaReplacements-SkyBox"
+        }
     ],
     "install": [
-        { "find": "GargantuaSystem", "install_to": "GameData", "filter": [ "Cache" ] }
+        {
+            "find": "GargantuaSystem",
+            "install_to": "GameData",
+            "filter": [
+                "Cache"
+            ]
+        }
     ]
 }
