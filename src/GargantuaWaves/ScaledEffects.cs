@@ -5,27 +5,27 @@ using UnityEngine;
 namespace GargantuaSystem
 {
     /// <summary>
-    /// Jatos de pulsar da estrela de nêutrons, que o Kopernicus não faz: feixe fino + bainha virados para a câmera e
-    /// um halo, girando como um farol. Shader aditivo de partículas do próprio KSP (sem asset bundle, sem Unity).
+    /// Pulsar jets of the neutron star, which Kopernicus cannot do: thin beam + sheath facing the camera and
+    /// a halo, spinning like a lighthouse. KSP's own additive particle shader (no asset bundle, no Unity).
     /// </summary>
     [KSPAddon(KSPAddon.Startup.AllGameScenes, false)]
     public class ScaledEffects : MonoBehaviour
     {
         const string StarName = "GargantuaNeutronStar";
-        // Objetos comuns do espaço escalado. A pulsar fica fora da esfera da lente de Gargantua (Singularity.cfg):
-        // dentro dela o Singularity repinta a tela e efeitos transparentes viram "fundo" (somem). Vistos através
-        // da esfera, atrás de Gargantua, os jatos somem; aceitável.
+        // Plain scaled-space objects. The pulsar is outside Gargantua's lens sphere (Singularity.cfg):
+        // inside it Singularity repaints the screen and transparent effects become "background" (vanish). Seen through
+        // the sphere, behind Gargantua, the jets vanish; acceptable.
         const int ScaledLayer = 10;
 
-        // Jatos (metros reais; o espaço escalado divide por ScaledSpace.ScaleFactor). Visual inspirado na Anubis do
-        // Cosmic Serenity: ponto muito brilhante com halo, feixe fino como agulha, bainha larga e fraca com poeira.
+        // Jets (real metres; scaled space divides by ScaledSpace.ScaleFactor). Look inspired by Cosmic Serenity's
+        // Anubis: very bright point with a halo, needle-thin beam, wide faint sheath with dust.
         const double JetLength = 3.0E9;
-        const double CoreWidth = 3.0E8;     // largura do feixe na ponta
-        const double SheathWidth = 1.2E9;   // largura da bainha na ponta
-        const double GlowSize = 1.2E9;     // diâmetro do halo em volta da estrela
-        const float JetTilt = 25;           // graus entre o eixo magnético (jatos) e o eixo de rotação
-        const double SpinPeriod = 30;       // s, igual à rotação do corpo (NeutronStar.cfg); 5 s parecia um PNG girando
-        const float FlowSpeed = 0.12f;      // repetições da textura de filamentos por segundo (escorre para fora)
+        const double CoreWidth = 3.0E8;     // beam width at the tip
+        const double SheathWidth = 1.2E9;   // sheath width at the tip
+        const double GlowSize = 1.2E9;     // halo diameter around the star
+        const float JetTilt = 25;           // degrees between the magnetic axis (jets) and the spin axis
+        const double SpinPeriod = 30;       // s, same as the body rotation (NeutronStar.cfg); 5 s looked like a spinning PNG
+        const float FlowSpeed = 0.12f;      // filament texture repeats per second (flows outwards)
 
         CelestialBody star;
         Transform jets, glow;
@@ -36,7 +36,7 @@ namespace GargantuaSystem
             var scene = HighLogic.LoadedScene;
             if (scene != GameScenes.FLIGHT && scene != GameScenes.TRACKSTATION && scene != GameScenes.SPACECENTER) { Destroy(this); return; }
             Shader shader = Shader.Find("KSP/Particles/Additive") ?? Shader.Find("Particles/Additive") ?? Shader.Find("Legacy Shaders/Particles/Additive");
-            if (shader == null) { Debug.LogError("[GargantuaSystem] ScaledEffects: shader aditivo não encontrado"); Destroy(this); return; }
+            if (shader == null) { Debug.LogError("[GargantuaSystem] ScaledEffects: additive shader not found"); Destroy(this); return; }
 
             star = FlightGlobals.GetBodyByName(StarName);
             if (star != null && star.scaledBody != null)
@@ -46,7 +46,7 @@ namespace GargantuaSystem
                 BuildFlow(shader).SetParent(jets, false);
             }
 
-            Debug.Log("[GargantuaSystem] ScaledEffects: shader " + shader.name + ", jatos " + (jets != null));
+            Debug.Log("[GargantuaSystem] ScaledEffects: shader " + shader.name + ", jets " + (jets != null));
         }
 
         void LateUpdate()
@@ -57,11 +57,11 @@ namespace GargantuaSystem
             {
                 Vector3 spin = ((Vector3)star.RotationAxis).normalized;
                 Vector3 pos = star.scaledBody.transform.position;
-                // eixo magnético inclinado, girando em volta do eixo de rotação (farol)
+                // tilted magnetic axis, spinning around the rotation axis (lighthouse)
                 Vector3 perp = Vector3.Cross(spin, Mathf.Abs(spin.x) < 0.9f ? Vector3.right : Vector3.forward).normalized;
                 Vector3 axis = Quaternion.AngleAxis((float)(360 * (t % SpinPeriod) / SpinPeriod), spin)
                     * (Quaternion.AngleAxis(JetTilt, perp) * spin);
-                // a faixa gira em volta do próprio eixo para ficar sempre de frente para a câmera
+                // the strip turns around its own axis to always face the camera
                 Vector3 toCam = cam.transform.position - pos;
                 Vector3 face = toCam - Vector3.Dot(toCam, axis) * axis;
                 if (face.sqrMagnitude < 1e-6f) face = perp;
@@ -69,10 +69,10 @@ namespace GargantuaSystem
                 jets.rotation = Quaternion.LookRotation(face.normalized, axis);
                 glow.position = pos;
                 glow.rotation = cam.transform.rotation;
-                // tempo real, não UT: em timewarp os filamentos virariam um borrão
+                // real time, not UT: in timewarp the filaments would become a blur
                 flowMat.mainTextureOffset = new Vector2(0, -(Time.time * FlowSpeed % 1f));
 #if GARGSYS_DEBUG
-                // posição na tela para os scripts de teste mirarem a câmera (build: -p:DefineConstants=GARGSYS_DEBUG)
+                // screen position for test scripts to aim the camera (build: -p:DefineConstants=GARGSYS_DEBUG)
                 if (Time.frameCount % 600 == 0) Debug.Log("[GargantuaSystem] ScaledEffects debug: viewport " + cam.WorldToViewportPoint(pos));
 #endif
             }
@@ -98,14 +98,14 @@ namespace GargantuaSystem
         static Material NewMaterial(Shader shader, Texture tex)
         {
             var m = new Material(shader) { mainTexture = tex };
-            m.SetColor("_TintColor", new Color(0.5f, 0.5f, 0.5f, 0.5f)); // neutro: a cor vem da textura
+            m.SetColor("_TintColor", new Color(0.5f, 0.5f, 0.5f, 0.5f)); // neutral: the colour comes from the texture
             return m;
         }
 
-        // ---------- jatos ----------
+        // ---------- jets ----------
 
-        /// Duas faixas por jato (bainha larga e núcleo fino), no plano XY local com o eixo do jato em ±Y.
-        /// O LateUpdate gira o objeto para o plano encarar a câmera (sem o "leque" de planos cruzados).
+        /// Two strips per jet (wide sheath and thin core), in the local XY plane with the jet axis along +-Y.
+        /// LateUpdate turns the object so the plane faces the camera (no "fan" of crossed planes).
         Transform BuildJets(Shader shader)
         {
             float s = ScaledSpace.ScaleFactor;
@@ -113,7 +113,7 @@ namespace GargantuaSystem
             var verts = new List<Vector3>();
             var uvs = new List<Vector2>();
             var tris = new List<int>();
-            // u 0..0,5 = bainha, 0,5..1 = núcleo (as duas metades da mesma textura)
+            // u 0..0.5 = sheath, 0.5..1 = core (the two halves of the same texture)
             AddStrip(verts, uvs, tris, r0, len, (float)(SheathWidth / s), 0f);
             AddStrip(verts, uvs, tris, r0, len * 0.85f, (float)(CoreWidth / s), 0.5f);
             var mesh = new Mesh { name = "GargSys_PulsarJets" };
@@ -122,8 +122,8 @@ namespace GargantuaSystem
             return NewObject("GargSys_PulsarJets", mesh, NewMaterial(shader, JetTexture()));
         }
 
-        /// Faixa em trapézio, subdividida em linhas e com uma coluna central: com só dois triângulos a textura
-        /// sofria distorção afim e a crista da gaussiana seguia a diagonal (fio e bainha saíam em ângulos diferentes).
+        /// Trapezoid strip, split into rows with a centre column: with only two triangles the texture suffered
+        /// affine distortion and the gaussian ridge followed the diagonal (core and sheath at different angles).
         static void AddStrip(List<Vector3> verts, List<Vector2> uvs, List<int> tris, float r0, float len, float width, float u0)
         {
             const int Rows = 32;
@@ -148,8 +148,8 @@ namespace GargantuaSystem
             }
         }
 
-        /// Metade esquerda: bainha (gaussiana larga e fraca + poeira pontilhada, mais densa para a ponta).
-        /// Metade direita: núcleo (fio fino e quente que se abre um pouco e some na ponta).
+        /// Left half: sheath (wide faint gaussian + dotted dust, denser towards the tip).
+        /// Right half: core (thin hot thread that widens a little and fades at the tip).
         static Texture2D JetTexture()
         {
             const int W = 256, H = 1024, Half = W / 2;
@@ -159,10 +159,10 @@ namespace GargantuaSystem
             for (int y = 0; y < H; y++)
             {
                 float fv = y / (H - 1f);
-                float baseFade = Mathf.Clamp01(fv * 60); // sem quina na base
+                float baseFade = Mathf.Clamp01(fv * 60); // no hard edge at the base
                 for (int x = 0; x < W; x++)
                 {
-                    float u = ((x % Half) / (Half - 1f) - 0.5f) * 2; // −1..1 em cada metade
+                    float u = ((x % Half) / (Half - 1f) - 0.5f) * 2; // -1..1 in each half
                     float b;
                     if (x >= Half)
                     {
@@ -178,7 +178,7 @@ namespace GargantuaSystem
                         b = haze + dust;
                     }
                     b = Mathf.Clamp01(b * baseFade);
-                    // cor embutida na textura: o KSP/Particles/Additive ignora a cor de vértice
+                    // colour baked into the texture: KSP/Particles/Additive ignores vertex colour
                     Color c = x >= Half ? new Color(0.80f, 0.90f, 1f) : new Color(0.40f, 0.60f, 1f);
                     px[y * W + x] = new Color(c.r * b, c.g * b, c.b * b, b);
                 }
@@ -188,9 +188,9 @@ namespace GargantuaSystem
             return tex;
         }
 
-        /// Filamentos que escorrem ao longo do feixe: faixa (filha do jato, mesma orientação) com textura que se
-        /// repete no comprimento e anda via mainTextureOffset. O sumiço nas pontas é pela largura (losango),
-        /// porque a textura rola e não pode levar o degradê.
+        /// Filaments flowing along the beam: a strip (child of the jet, same orientation) with a texture that
+        /// repeats along the length and moves via mainTextureOffset. The fade at the ends comes from the width (diamond),
+        /// because the texture scrolls and cannot carry the gradient.
         Transform BuildFlow(Shader shader)
         {
             const int Rows = 48, Repeats = 3;
@@ -226,7 +226,7 @@ namespace GargantuaSystem
             return NewObject("GargSys_PulsarFlow", mesh, flowMat);
         }
 
-        /// Filamentos finos ao longo de v, com brilho variando em ondas de frequência inteira (repete sem emenda).
+        /// Thin filaments along v, with brightness varying in integer-frequency waves (repeats seamlessly).
         static Texture2D FlowTexture()
         {
             const int W = 128, H = 512, Strands = 14;
@@ -263,7 +263,7 @@ namespace GargantuaSystem
             return tex;
         }
 
-        /// Halo em volta da estrela: quad virado para a câmera, núcleo saturado e cauda longa (~1/r²).
+        /// Halo around the star: camera-facing quad, saturated core and long (~1/r^2) tail.
         Transform BuildGlow(Shader shader)
         {
             float h = (float)(GlowSize / ScaledSpace.ScaleFactor / 2);

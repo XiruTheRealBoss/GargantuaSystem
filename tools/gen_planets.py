@@ -2,12 +2,12 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy", "pillow"]
 # ///
-"""Gera os mapas procedurais dos planetas (altura, cor, normais, biomas).
+"""Generates the procedural planet maps (height, colour, normals, biomes).
 
-Uso: uv run tools/gen_planets.py [miller|mann|edmunds ...]
-Saída: GameData/GargantuaSystem/PluginData/<Planeta>/
-Todos os mapas são equiretangulares (2:1) amostrados em 3D na esfera, sem costura na longitude e sem
-distorção nos polos. As cores dos biomas são conferidas contra os .cfg dos corpos no fim.
+Usage: uv run tools/gen_planets.py [miller|mann|edmunds ...]
+Output: GameData/GargantuaSystem/PluginData/<Planet>/
+All maps are equirectangular (2:1) sampled in 3D on the sphere, with no seam at the longitude wrap and no
+distortion at the poles. Biome colours are checked against the bodies' .cfg files at the end.
 """
 import re
 import sys

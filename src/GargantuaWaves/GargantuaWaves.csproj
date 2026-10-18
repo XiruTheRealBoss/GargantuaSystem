@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Build: dotnet build -c Release   (KSPDIR aponta para a instalação do KSP; troque com -p:KSPDIR=...) -->
+  <!-- Build: dotnet build -c Release   (KSPDIR points to the KSP install; override with -p:KSPDIR=...) -->
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>GargantuaWaves</AssemblyName>

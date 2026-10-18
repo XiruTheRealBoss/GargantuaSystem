@@ -2,12 +2,12 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy", "pillow"]
 # ///
-"""Gera a skybox (cubemap de 6 faces) usada com a SigmaReplacements-SkyBox (opcional).
+"""Generates the skybox (6-face cubemap) used with SigmaReplacements-SkyBox.
 
-Uso: uv run tools/gen_skybox.py
-Saída: GameData/GargantuaSystem/Textures/Skybox/Gargantua_<Face>.png e Black_<Face>.png
-Estrelas e faixa galáctica são calculadas pela DIREÇÃO 3D de cada pixel, então as faces se encaixam
-sem costura independentemente da resolução.
+Usage: uv run tools/gen_skybox.py
+Output: GameData/GargantuaSystem/Textures/Skybox/Gargantua_<Face>.png and Black_<Face>.png
+Stars and the galactic band are computed from each pixel's 3D DIRECTION, so the faces fit together
+seamlessly at any resolution.
 """
 from pathlib import Path
 
@@ -78,7 +78,7 @@ def main():
         img = face(*basis)
         Image.fromarray((img * 255).round().astype(np.uint8), "RGB").save(OUT / f"Gargantua_{name}.png")
         Image.fromarray(np.zeros((8, 8, 3), np.uint8), "RGB").save(OUT / f"Black_{name}.png")
-        print(name, f"brilho médio {img.mean():.4f}", flush=True)
+        print(name, f"mean brightness {img.mean():.4f}", flush=True)
     check_edges()
 
 

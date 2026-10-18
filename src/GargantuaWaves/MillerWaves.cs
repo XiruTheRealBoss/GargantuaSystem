@@ -4,34 +4,34 @@ using UnityEngine;
 namespace GargantuaSystem
 {
     /// <summary>
-    /// Ondas de maré gigantes de Miller que varrem o planeta.
-    /// O Kopernicus não anima terreno (reconstruir o PQS leva segundos), então cada onda é uma malha própria,
-    /// presa ao PQS de Miller e girando em volta do eixo do planeta. A posição vem do tempo universal:
-    /// timewarp, save/load e cenas diferentes veem sempre a mesma onda no mesmo lugar.
-    /// Interação analítica (sem colisor): a nave que fica abaixo da superfície da onda é erguida e arrastada junto,
-    /// como no filme. Um MeshCollider móvel não funciona aqui: sem Rigidbody ele não acorda naves paradas (a onda
-    /// atravessava), e com Rigidbody a origem flutuante do KSP descola a malha do planeta.
+    /// Miller's giant tidal waves that sweep the planet.
+    /// Kopernicus does not animate terrain (rebuilding the PQS takes seconds), so each wave is its own mesh,
+    /// attached to Miller's PQS and rotating around the planet's axis. The position comes from universal time:
+    /// timewarp, save/load and different scenes always see the same wave in the same place.
+    /// Analytic interaction (no collider): a vessel below the wave surface floats and is carried along,
+    /// like in the film. A moving MeshCollider does not work here: without a Rigidbody it does not wake resting vessels (the wave
+    /// passed through them), and with a Rigidbody KSP's floating origin detaches the mesh from the planet.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class MillerWaves : MonoBehaviour
     {
         const string BodyName = "Miller";
         const int WaveCount = 5;
-        const double CrestHeight = 1200;   // m (o filme fala em ~4000 pés); liberdade criativa na escala
-        const double Speed = 100;          // m/s no equador: uma onda passa por cada ponto a cada ~2,3 h
-        const double WarnDistance = 33000; // m: a crista a essa distância dispara o aviso (o warp para antes)
-        const double FaceWidth = 2600;     // m: frente íngreme
-        const double BackWidth = 14000;    // m: escala da encosta de trás (gaussiana)
-        const double BackLength = 40000;   // m: onde a encosta de trás já está a ~0 m
-        const double MaxLat = 72;          // graus: as ondas morrem antes dos polos
-        const double LatStep = 0.1;        // graus ao longo da crista (~1,1 km em Miller)
+        const double CrestHeight = 1200;   // m (the film says ~4000 ft); creative liberty on the scale
+        const double Speed = 100;          // m/s at the equator: a wave passes each point every ~2.3 h
+        const double WarnDistance = 33000; // m: a crest at this distance triggers the warning (warp stops earlier)
+        const double FaceWidth = 2600;     // m: steep front face
+        const double BackWidth = 14000;    // m: back slope scale (gaussian)
+        const double BackLength = 40000;   // m: where the back slope is already ~0 m
+        const double MaxLat = 72;          // degrees: the waves die out before the poles
+        const double LatStep = 0.1;        // degrees along the crest (~1.1 km on Miller)
 
         CelestialBody body;
         Transform pqs;
-        Vector3 polarAxis;                 // eixo norte em coordenadas locais do PQS
-        float rotationSign;                // + ou −, para a rotação andar para leste (frente da onda na frente)
+        Vector3 polarAxis;                 // north axis in PQS local coordinates
+        float rotationSign;                // + or -, so the rotation moves east (wave front leading)
         Transform[] waves;
-        double angularSpeed;               // graus/s
+        double angularSpeed;               // degrees/s
         double lastWarnUT = double.MinValue;
 
         void Start()
@@ -39,7 +39,7 @@ namespace GargantuaSystem
             body = FlightGlobals.GetBodyByName(BodyName);
             if (body == null || body.pqsController == null)
             {
-                Debug.Log("[GargantuaSystem] MillerWaves: corpo " + BodyName + " não encontrado, ondas desligadas");
+                Debug.Log("[GargantuaSystem] MillerWaves: body " + BodyName + " not found, waves disabled");
                 Destroy(this);
                 return;
             }
@@ -47,7 +47,7 @@ namespace GargantuaSystem
             angularSpeed = Speed / body.Radius * 180 / Math.PI;
             polarAxis = pqs.InverseTransformDirection((Vector3)(body.GetWorldSurfacePosition(90, 0, 0) - body.position)).normalized;
 
-            // Qual sentido de rotação aumenta a longitude? Testado na hora, sem depender da convenção do KSP.
+            // Which rotation direction increases longitude? Tested at runtime, without relying on KSP's convention.
             Vector3 p0 = pqs.InverseTransformPoint(body.GetWorldSurfacePosition(0, 0, 0));
             Vector3 p1 = Quaternion.AngleAxis(1, polarAxis) * p0;
             double lon1 = body.GetLongitude(pqs.TransformPoint(p1));
@@ -59,13 +59,13 @@ namespace GargantuaSystem
             for (int k = 0; k < WaveCount; k++)
             {
                 var go = new GameObject("GargSys_MillerWave_" + k);
-                go.layer = 15; // Local Scenery: as naves colidem como colidem com o terreno
+                go.layer = 15; // Local Scenery: vessels collide as they do with terrain
                 go.transform.SetParent(pqs, false);
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 go.AddComponent<MeshRenderer>().sharedMaterial = material;
                 waves[k] = go.transform;
             }
-            Debug.Log("[GargantuaSystem] MillerWaves: " + WaveCount + " ondas, " + mesh.vertexCount + " vértices, sinal " + rotationSign
+            Debug.Log("[GargantuaSystem] MillerWaves: " + WaveCount + " waves, " + mesh.vertexCount + " vertices, sign " + rotationSign
                 + ", shader " + (material.shader != null ? material.shader.name : "NULL"));
             SelfCheck();
         }
@@ -92,14 +92,14 @@ namespace GargantuaSystem
             }
         }
 
-        /// Em timewarp a nave fica "em trilhos" e a onda passa sem ninguém ver. Quando uma crista vai chegar,
-        /// para a aceleração do tempo e avisa ("isso não é uma montanha").
+        /// In timewarp the vessel is "on rails" and the wave passes unseen. When a crest is about to arrive,
+        /// stop time acceleration and warn ("that's not a mountain").
         void Alarm(Vessel v, double t)
         {
             if (v == null || v.mainBody != body || Math.Abs(v.latitude) > MaxLat || v.altitude > 3 * CrestHeight) return;
             double eta = TimeToNextCrest(v.latitude, v.longitude, t);
             double groundSpeed = Speed * Math.Cos(v.latitude * Math.PI / 180);
-            // num passo de física o warp alto pode pular a onda inteira: para o warp antes, com folga
+            // in one physics step high warp can skip the whole wave: stop warp earlier, with margin
             if (TimeWarp.CurrentRateIndex > 0 && eta <= Math.Max(WarnDistance / groundSpeed, TimeWarp.CurrentRate * TimeWarp.fixedDeltaTime * 3))
                 TimeWarp.SetRate(0, true);
             if (eta * groundSpeed > WarnDistance || t - lastWarnUT < 600) return;
@@ -109,7 +109,7 @@ namespace GargantuaSystem
                 10f, ScreenMessageStyle.UPPER_CENTER);
         }
 
-        /// Segundos até a próxima crista passar por (lat, lon). As ondas andam para leste a velocidade angular fixa.
+        /// Seconds until the next crest passes (lat, lon). The waves move east at a fixed angular speed.
         public double TimeToNextCrest(double lat, double lon, double t)
         {
             double latRad = lat * Math.PI / 180;
@@ -118,13 +118,13 @@ namespace GargantuaSystem
             for (int k = 0; k < WaveCount; k++)
             {
                 double crest = k * 360.0 / WaveCount + 23 + angularSpeed * t + crestOffset;
-                double ahead = ((lon - crest) % 360 + 360) % 360; // graus que a crista ainda tem que andar até aqui
+                double ahead = ((lon - crest) % 360 + 360) % 360; // degrees the crest still has to travel to get here
                 best = Math.Min(best, ahead / angularSpeed);
             }
             return best;
         }
 
-        /// Altura da onda (m acima do mar) num ponto, num instante. Mesma fórmula da malha.
+        /// Wave height (m above the sea) at a point and time. Same formula as the mesh.
         double WaveHeight(double lat, double lon, double t)
         {
             double latRad = lat * Math.PI / 180;
@@ -134,31 +134,31 @@ namespace GargantuaSystem
             for (int k = 0; k < WaveCount; k++)
             {
                 double crest = k * 360.0 / WaveCount + 23 + angularSpeed * t + crestOffset;
-                double dDeg = ((lon - crest) % 360 + 540) % 360 - 180; // −180..180, positivo = na frente (leste)
+                double dDeg = ((lon - crest) % 360 + 540) % 360 - 180; // -180..180, positive = ahead (east)
                 h = Math.Max(h, CrestHeight * Along(latRad) * SmoothStep(MaxLat, 45, Math.Abs(lat)) * Profile(dDeg * metersPerDeg));
             }
             return h;
         }
 
-        // Água "de mentira" (não há fluido no KSP): empuxo proporcional à profundidade + arrasto até a velocidade
-        // da água. Antes era um elevador (cancelava a gravidade e puxava a 100 m/s em toda a encosta de trás, de
-        // 40 km): depois da crista a nave ficava "flutuando" no alto por muito tempo.
-        const double FloatDepth = 4;       // m submersos em que o empuxo iguala a gravidade
-        const double BuoyMax = 3;          // empuxo máximo, em g (fundo da onda)
-        const double VertDamp = 1.2;       // 1/s: acompanha a superfície subindo e descendo
-        const double HorizDrag = 0.6;      // 1/s: arrasto até a velocidade da água
-        const double WaterDepth = 600;     // m, efetiva: na crista a água anda ~2/3 da onda (com 150 a nave surfava a crista para sempre)
+        // "Fake" water (KSP has no fluid): buoyancy proportional to depth + drag towards the water velocity.
+        // It used to be a lift (cancelled gravity and pulled at 100 m/s over the whole 40 km back slope):
+        // after the crest the vessel kept "floating" up high for a long time.
+        const double FloatDepth = 4;       // m submerged at which buoyancy equals gravity
+        const double BuoyMax = 3;          // maximum buoyancy, in g (bottom of the wave)
+        const double VertDamp = 1.2;       // 1/s: follows the surface rising and falling
+        const double HorizDrag = 0.6;      // 1/s: drag towards the water velocity
+        const double WaterDepth = 600;     // m, effective: at the crest the water moves ~2/3 of the wave speed (with 150 the vessel surfed the crest forever)
 
-        /// Velocidade horizontal da água sob a onda (águas rasas: u = c·η/(η+H)). Perto da crista quase c,
-        /// na encosta de trás cai junto com a altura, e a nave vai perdendo velocidade.
+        /// Horizontal water velocity under the wave (shallow water: u = c*eta/(eta+H)). Near the crest almost c,
+        /// on the back slope it drops with the height, and the vessel slows down.
         static double WaterSpeed(double h, double groundSpeed) => groundSpeed * h / (h + WaterDepth);
 
-        /// Nave abaixo da superfície da onda: empuxo para cima, amortecimento vertical relativo à superfície (que sobe
-        /// e desce com a onda) e arrasto horizontal até a velocidade da água. Abaixo de 2 m o mar stock assume.
+        /// Vessel below the wave surface: upward buoyancy, vertical damping relative to the surface (which rises
+        /// and falls with the wave) and horizontal drag towards the water velocity. Below 2 m the stock sea takes over.
         void Push(Vessel v, double t)
         {
             double h = WaveHeight(v.latitude, v.longitude, t);
-            // h < 2 m = mar aberto: naves boiando ficam a ~−0,1 m e seriam "engolidas" pelo mar parado
+            // h < 2 m = open sea: floating vessels sit at ~-0.1 m and would be "swallowed" by the calm sea
             if (h < 2 || v.altitude >= h) return;
             double depth = h - v.altitude;
             Vector3d pos = v.CoMD;
@@ -182,7 +182,7 @@ namespace GargantuaSystem
 
         static double Along(double latRad) => 0.75 + 0.15 * Math.Sin(7 * latRad) + 0.10 * Math.Sin(13 * latRad + 1);
 
-        /// Checagem rápida do perfil e da altura (cai no log se alguém mexer na forma e quebrar).
+        /// Quick check of the profile and height (logs an error if someone changes the shape and breaks it).
         void SelfCheck()
         {
             bool ok = Math.Abs(Profile(0) - 1) < 1e-9 && Profile(FaceWidth) == 0 && Profile(-BackLength) < 1e-3
@@ -192,7 +192,7 @@ namespace GargantuaSystem
             ok &= hCrest > 0.6 * CrestHeight && WaveHeight(0, crestNow + 36, Planetarium.GetUniversalTime()) < 1;
             ok &= Math.Abs(TimeToNextCrest(0, crestNow + 1, Planetarium.GetUniversalTime()) - 1 / angularSpeed) < 1;
             ok &= WaterSpeed(CrestHeight, Speed) > 0.5 * Speed && WaterSpeed(CrestHeight, Speed) < 0.8 * Speed && WaterSpeed(2, Speed) < 0.02 * Speed;
-            if (!ok) Debug.LogError("[GargantuaSystem] MillerWaves: self-check do perfil FALHOU (crista " + hCrest.ToString("F0") + " m)");
+            if (!ok) Debug.LogError("[GargantuaSystem] MillerWaves: profile self-check FAILED (crest " + hCrest.ToString("F0") + " m)");
         }
 
         void OnDestroy()
@@ -202,14 +202,14 @@ namespace GargantuaSystem
                 if (w != null) Destroy(w.gameObject);
         }
 
-        /// Altura (m) a uma distância d (m) da crista, positiva para a frente (leste). Mesmo perfil das versões estáticas.
+        /// Height (m) at a distance d (m) from the crest, positive ahead (east). Same profile as the static versions.
         public static double Profile(double d)
         {
             if (d >= 0) return d >= FaceWidth ? 0 : Math.Pow(1 - d / FaceWidth, 1.6);
             return Math.Exp(-(d / BackWidth) * (d / BackWidth));
         }
 
-        // Distâncias do perfil: densas na frente (onde a forma muda rápido), esparsas na encosta de trás
+        // Profile distances: dense on the front (where the shape changes fast), sparse on the back slope
         static readonly double[] Across = BuildAcross();
 
         static double[] BuildAcross()
@@ -229,7 +229,7 @@ namespace GargantuaSystem
             for (int i = 0; i < nLat; i++)
             {
                 double lat = -MaxLat + i * LatStep, latRad = lat * Math.PI / 180;
-                double crest = (0.22 * latRad * latRad + 0.04 * Math.Sin(3 * latRad)) * 180 / Math.PI; // crista curva
+                double crest = (0.22 * latRad * latRad + 0.04 * Math.Sin(3 * latRad)) * 180 / Math.PI; // curved crest
                 double taper = SmoothStep(MaxLat, 45, Math.Abs(lat));
                 double along = Along(latRad);
                 double metersPerDeg = R * Math.PI / 180 * Math.Max(Math.Cos(latRad), 0.05);
@@ -239,7 +239,7 @@ namespace GargantuaSystem
                     double h = CrestHeight * along * taper * Profile(d);
                     double lon = crest + d / metersPerDeg;
                     verts[i * nAcross + j] = pqs.InverseTransformPoint(body.GetWorldSurfacePosition(lat, lon, h));
-                    // v: 0 = fim da encosta de trás, 0,9 = crista, 1 = pé da frente; u repete a cada ~5 km
+                    // v: 0 = end of the back slope, 0.9 = crest, 1 = foot of the front; u repeats every ~5 km
                     double v = d <= 0 ? 0.9 * (1 + d / BackLength) : 0.9 + 0.1 * d / FaceWidth;
                     uvs[i * nAcross + j] = new Vector2((float)(i * LatStep * Math.PI / 180 * R / 5000), (float)v);
                 }
@@ -258,7 +258,7 @@ namespace GargantuaSystem
             mesh.vertices = verts;
             mesh.uv = uvs;
             mesh.triangles = tris;
-            // a face precisa olhar para fora do planeta; se o enrolamento saiu ao contrário, inverte
+            // the face must point away from the planet; if the winding came out reversed, flip it
             mesh.RecalculateNormals();
             int mid = (nLat / 2) * nAcross + nAcross / 2;
             if (Vector3.Dot(mesh.normals[mid], verts[mid].normalized) < 0)

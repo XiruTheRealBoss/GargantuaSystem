@@ -2,11 +2,11 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy", "pillow"]
 # ///
-"""Gera as texturas de nuvens do EVE (equiretangulares, sem costura) e a textura de detalhe.
+"""Generates the EVE cloud textures (equirectangular, seamless) and the detail texture.
 
-Uso: uv run tools/gen_clouds.py
-Saída: GameData/GargantuaSystem/Textures/EVE/  (fora do PluginData: o EVE lê pelo GameDatabase)
-RGB = brilho da nuvem, A = cobertura. A cor final vem do _Color de cada camada no .cfg.
+Usage: uv run tools/gen_clouds.py
+Output: GameData/GargantuaSystem/Textures/EVE/  (outside PluginData: EVE reads them through the GameDatabase)
+RGB = cloud brightness, A = coverage. The final colour comes from each layer's _Color in the .cfg.
 """
 from pathlib import Path
 
@@ -65,7 +65,7 @@ def main():
         rgb = np.repeat(bright[..., None], 3, axis=-1)
         save_rgb(OUT / f"{name}.png", rgb, cover)
         save_gray(OUT_VOL / f"{name}_coverage.png", cover)
-        print(f"{name}: cobertura média {cover.mean():.0%}")
+        print(f"{name}: mean coverage {cover.mean():.0%}")
     d = detail()
     check_seamless(d, "cloud detail")
     save_gray(OUT / "cloud_detail.png", d)
