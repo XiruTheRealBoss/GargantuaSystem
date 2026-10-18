@@ -175,3 +175,4 @@
 - **Gotcha:** com H = 150 m, a água na crista andava a 87% de c (igual à crista naquela latitude) e a nave "surfava" a crista para sempre. Com 600 m a onda passa por baixo.
 - Verificado (log de debug com a nave Onda H): sobe com a frente (vUp acompanha a subida), chega à crista a ~1000 m, a crista passa e a nave desce pela encosta de trás uns 5 m abaixo da superfície, freando de 62 para 20 m/s. Abaixo de 2 m de onda, o mar stock assume.
 - Self-check novo: velocidade da água na crista entre 0,5c e 0,8c e ~0 com onda de 2 m.
+- Verificado também com kerbal em EVA (Valentina): sobe até ~1000 m, desce com a água e volta a boiar no mar stock (onda 2 m, 0 m/s). Confirmado pelo usuário no jogo ("funcionou"). Print: docs/screenshots/miller_wave_eva.png. Nave pousada no fundo raso não testada.
