@@ -4,33 +4,27 @@ A Kopernicus planet pack for **KSP 1.12.x** inspired by *Interstellar* (2014): t
 Gargantua with a lensed accretion disk, Miller's water world and its giant tidal waves, Mann's frozen planet,
 Edmunds' desert world around the star Pantagruel, an unnamed pulsar, and an optional wormhole near Jool.
 
-> **Português:** pack de planetas do filme *Interstellar*. Instalação, dependências e problemas conhecidos estão
-> abaixo (em inglês). Resumo: instale pelo CKAN (traz todas as dependências), recomendado: nuvens volumétricas do
-> blackrack (StockVolumetricClouds, fora do CKAN). Faça backup do save e **desligue o TAA do Scatterer**
-> (veja "Known issues").
+## All Celestial Bodies Included
 
-## Bodies
-
-| Body | What it is | Orbit | Notes |
-|---|---|---|---|
-| Gargantua | Black hole (Singularity lensing + accretion disk) | Kerbol, 2.0E14 m (`mode = OFF`, hidden orbit line) | Visual horizon ≈ 2.8E9 m, disk 3.6E9–2.2E10 m |
+| Gargantua
+| Black hole (Singularity lensing + accretion disk)
+| Kerbol, 2.0E14 m (`mode = OFF`, hidden orbit line)
 | Miller | Shallow ocean world, tidally locked | Gargantua, 1.0E10 m | 1.3 g. Giant tidal waves sweep the planet (plugin) |
 | Mann | Glacier world, thin cold atmosphere | Gargantua, 7.0E10 m | 0.8 g, "frozen clouds" with volumetric EVE |
-| Edmunds | Rocky desert with breathable air (oxygen), no ocean | Pantagruel, 1.4E10 m | 0.9 g |
-| Pantagruel | Main-sequence star lighting Edmunds | Gargantua, 5.0E11 m | |
-| Neutron star | Unnamed pulsar from the film, with jets | Gargantua, 1.0E11 m | Glows but does not light the scene. Lethal heat close in |
-| Wormhole A / B | Kerbol side (Jool; Sarnus with OPM; Saturn with RSS/KSRSS) ↔ Gargantua side | | Optional (`Wormholes = True`) |
+| Edmunds - Rocky desert with breathable air (oxygen), no ocean (The last planet on the movie)
+| Pantagruel - Star that lights Edmunds
+| Neutron star Unnamed pulsar from the film, with jets 
+| Wormhole A / B - Kerbol side (Jool in Stock; Sarnus with OPM; Saturn with RSS/KSRSS) ↔ Gargantua side | | Optional (`Wormholes = True`) |
 
-## Requirements
+## Dependencies
 
-Required (CKAN installs them all): **Kopernicus**, **ModuleManager**, **Singularity**, **KopernicusExpansion
+Required: **Kopernicus**, **ModuleManager**, **Singularity**, **KopernicusExpansion
 Continued-er** (wormhole and 16-bit heightmaps), **Scatterer** (atmospheres and Miller's ocean), **EVE** (clouds),
 **Parallax Continued** with its stock terrain and scatter textures (terrain detail and rocks on Mann and Edmunds) and
 **SigmaReplacements-SkyBox** (skybox). Harmony comes with Kopernicus.
 
-Recommended (not on CKAN, install by hand): blackrack's raymarched volumetric clouds for EVE with the
-**StockVolumetricClouds** pack. With it, Miller, Mann and Edmunds get volumetric cloud decks; without it they use
-2D clouds.
+Recommended (not on CKAN, install by hand): blackrack's raymarched volumetric clouds (V3 and V4 are free) with EVE with the
+**StockVolumetricClouds** pack. With it, Miller, Mann and Edmunds get volumetric cloud decks, that give it an extra charm.
 
 Tested on: KSP 1.12.5, Kopernicus release-247, Singularity 0.994, ModuleManager 4.2.3, KopernicusExpansion
 Continued-er Beta9.1.1, Scatterer 0.0878, EVE (raymarched, StockVolumetricClouds V4), Parallax Continued,
@@ -38,12 +32,11 @@ Deferred 1.3.5.
 
 ## Install
 
-CKAN (when published), or copy `GameData/GargantuaSystem` into your `GameData`. **Back up your save first.**
+CKAN (when published), or copy `GameData/GargantuaSystem` into your `GameData`. **Remeber ti back up your save first.**
 
 ## Settings
 
-Edit `GameData/GargantuaSystem/GargantuaSystem_Settings.cfg` with the game closed. Changing it mid-save can delete
-vessels orbiting bodies that stop existing.
+**!! Only edit with the game closed to prevent from Save corrupting and celestial bodies disapearing**
 
 - `Wormholes` (True/False): the Kerbol ↔ Gargantua wormhole.
 - `DistanceFactor` (1, 0.1, 10, 100): Kerbol–Gargantua distance. `0` makes Kerbol orbit Gargantua (experimental).
