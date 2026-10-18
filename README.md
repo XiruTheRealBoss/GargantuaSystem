@@ -79,7 +79,6 @@ Deferred 1.3.5. Also tested with Outer Planets Mod and Real Solar System 20.1.3.
 2. Install with **CKAN** (when published), or download the zip from
    [Releases](https://github.com/XiruTheRealBoss/GargantuaSystem-KSP/releases/latest) and copy `GameData/GargantuaSystem`
    into your KSP `GameData` folder, together with the dependencies above.
-3. Recommended: in `GameData/scatterer/config/config.cfg` set `useTemporalAntiAliasing = False` (see Known issues).
 
 ## Settings
 
@@ -103,8 +102,8 @@ Edit `GameData/GargantuaSystem/GargantuaSystem_Settings.cfg`:
 
 ## Known issues
 
-- **Torn or frozen sky near Gargantua:** Scatterer's TAA together with Singularity smears the sky. Set
-  `useTemporalAntiAliasing = False` in `GameData/scatterer/config/config.cfg` (SMAA keeps working).
+- **Torn or smeared sky near Gargantua:** fixed in 0.9.0 and not seen with Scatterer's TAA on. If it shows up on your
+  setup, set `useTemporalAntiAliasing = False` in `GameData/scatterer/config/config.cfg` (SMAA keeps working).
 - **Faint circle around Gargantua:** Singularity only draws the black hole inside a sphere (here 5.4E10 m). Inside it
   the sky comes from a galaxy snapshot, so its brightness can differ slightly from the sky outside.
 - Pulsar jets disappear when seen *through* that sphere (behind Gargantua).
