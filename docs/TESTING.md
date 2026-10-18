@@ -10,8 +10,9 @@ Status: ✅ verified in game during development · ⬜ not tested yet.
 ## Bodies
 - ✅ Gargantua: black hole + tilted disk, no rays; disk not clipped by the lens sphere (from the pulsar and from Miller orbit).
 - ✅ Miller: ocean, clouds, landing/splashdown; wave visible on the day side (lon ≈ +5..+60).
-- ✅ Miller wave: warp stops and the warning shows at 33 km; a floating vessel and an EVA Kerbal ride up to the crest and
+- ✅ Miller wave: warp stops before the crest arrives; a floating vessel and an EVA Kerbal ride up to the crest and
   come back down with the water (no floating in the air afterwards).
+- ⬜ The on-screen warning text at 33 km (en-us and pt-br).
 - ⬜ Miller wave with a vessel landed on the shallow sea floor.
 - ✅ Mann: terrain detail, Parallax rocks, atmosphere, frozen clouds.
 - ✅ Edmunds: terrain, Parallax rocks, atmosphere.
