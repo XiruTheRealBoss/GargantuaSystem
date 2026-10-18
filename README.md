@@ -71,7 +71,7 @@ charm.
 
 Tested on: KSP 1.12.5, Kopernicus release-247, Singularity 0.994, ModuleManager 4.2.3, KopernicusExpansion
 Continued-er Beta9.1.1, Scatterer 0.0878, EVE (raymarched, StockVolumetricClouds V4), Parallax Continued,
-Deferred 1.3.5.
+Deferred 1.3.5. Also tested with Outer Planets Mod and Real Solar System 20.1.3.
 
 ## Install
 
@@ -95,9 +95,10 @@ Edit `GameData/GargantuaSystem/GargantuaSystem_Settings.cfg`:
 
 - **Principia:** forces `DistanceFactor = 0`, no wormholes and a black skybox (Singularity artifacts otherwise).
   *Untested.*
-- **RSS / KSRSS:** bodies are protected from RSS cleanup, the wormhole moves to Saturn and distances scale ×10.
-  *Untested.*
-- **OPM:** the Kerbol-side wormhole moves to Sarnus.
+- **RSS:** tested with Real Solar System 20.1.3 (CKAN). Gargantua's bodies survive RSS's cleanup, the Sun-side
+  wormhole moves to Saturn and distances scale ×10. RSS Reborn (installed with its own installer) is not supported.
+- **KSRSS:** same patches as RSS. *Untested.*
+- **OPM:** tested. The Kerbol-side wormhole moves to Sarnus.
 - **KerbalGalaxy 3:** incompatible (it also adds a body named `Gargantua`).
 
 ## Known issues
