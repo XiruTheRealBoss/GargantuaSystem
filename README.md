@@ -6,14 +6,18 @@ Edmunds' desert world around the star Pantagruel, an unnamed pulsar, and an opti
 
 ## All Celestial Bodies Included
 
-| Gargantua
-| Black hole (Singularity lensing + accretion disk)
-| Kerbol, 2.0E14 m (`mode = OFF`, hidden orbit line)
-| Miller | Shallow ocean world, tidally locked | Gargantua, 1.0E10 m | 1.3 g. Giant tidal waves sweep the planet (plugin) |
-| Mann | Glacier world, thin cold atmosphere | Gargantua, 7.0E10 m | 0.8 g, "frozen clouds" with volumetric EVE |
+| Gargantua - Black Hole
+
+| Miller - Shallow ocean world, tidally locked
+
+| Mann - Glacier world, thin cold atmosphere 
+
 | Edmunds - Rocky desert with breathable air (oxygen), no ocean (The last planet on the movie)
+
 | Pantagruel - Star that lights Edmunds
+
 | Neutron star Unnamed pulsar from the film, with jets 
+
 | Wormhole A / B - Kerbol side (Jool in Stock; Sarnus with OPM; Saturn with RSS/KSRSS) ↔ Gargantua side | | Optional (`Wormholes = True`) |
 
 ## Dependencies
