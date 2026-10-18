@@ -164,3 +164,14 @@
 - Agora: o warp para quando a crista está a ≤50 km do chão ou a até 3 passos de física (o que vier primeiro). A mensagem só aparece com a crista a ≤50 km. `WarnDistance` em MillerWaves.cs (33000 m, pedido do usuário).
 - O texto em inglês já existia (`en-us` em Localization.cfg); o KSP escolhe pelo idioma do jogo.
 - Não testado no jogo (precisa esperar uma crista com a nave no lado certo de Miller).
+
+## 2026-10-17 — Física da onda: empuxo e arrasto no lugar do "elevador"
+- Usuário: depois que a onda passa, o personagem fica flutuando de forma bizarra.
+- Causa: o Push cancelava a gravidade e puxava a nave a 100 m/s para leste enquanto ela estivesse abaixo da superfície. A encosta de trás tem ~40 km e desce devagar, então a nave ficava presa no alto.
+- Agora (MillerWaves.Push):
+  - empuxo = g·min(profundidade/4 m, 3), sem compensar a gravidade;
+  - amortecimento vertical (1,2/s) relativo à velocidade com que a superfície sobe e desce (dη/dt numérico);
+  - arrasto horizontal (0,6/s) até a velocidade da água u = c·η/(η+600 m) (águas rasas; na crista ~2/3 de c).
+- **Gotcha:** com H = 150 m, a água na crista andava a 87% de c (igual à crista naquela latitude) e a nave "surfava" a crista para sempre. Com 600 m a onda passa por baixo.
+- Verificado (log de debug com a nave Onda H): sobe com a frente (vUp acompanha a subida), chega à crista a ~1000 m, a crista passa e a nave desce pela encosta de trás uns 5 m abaixo da superfície, freando de 62 para 20 m/s. Abaixo de 2 m de onda, o mar stock assume.
+- Self-check novo: velocidade da água na crista entre 0,5c e 0,8c e ~0 com onda de 2 m.

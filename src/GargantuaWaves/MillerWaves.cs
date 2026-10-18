@@ -140,8 +140,21 @@ namespace GargantuaSystem
             return h;
         }
 
-        /// Ergue e arrasta uma nave que está "dentro" da onda: leva a velocidade para (leste a Speed, para cima
-        /// proporcional à profundidade). Aceleração limitada para não virar Kraken.
+        // Água "de mentira" (não há fluido no KSP): empuxo proporcional à profundidade + arrasto até a velocidade
+        // da água. Antes era um elevador (cancelava a gravidade e puxava a 100 m/s em toda a encosta de trás, de
+        // 40 km): depois da crista a nave ficava "flutuando" no alto por muito tempo.
+        const double FloatDepth = 4;       // m submersos em que o empuxo iguala a gravidade
+        const double BuoyMax = 3;          // empuxo máximo, em g (fundo da onda)
+        const double VertDamp = 1.2;       // 1/s: acompanha a superfície subindo e descendo
+        const double HorizDrag = 0.6;      // 1/s: arrasto até a velocidade da água
+        const double WaterDepth = 600;     // m, efetiva: na crista a água anda ~2/3 da onda (com 150 a nave surfava a crista para sempre)
+
+        /// Velocidade horizontal da água sob a onda (águas rasas: u = c·η/(η+H)). Perto da crista quase c,
+        /// na encosta de trás cai junto com a altura, e a nave vai perdendo velocidade.
+        static double WaterSpeed(double h, double groundSpeed) => groundSpeed * h / (h + WaterDepth);
+
+        /// Nave abaixo da superfície da onda: empuxo para cima, amortecimento vertical relativo à superfície (que sobe
+        /// e desce com a onda) e arrasto horizontal até a velocidade da água. Abaixo de 2 m o mar stock assume.
         void Push(Vessel v, double t)
         {
             double h = WaveHeight(v.latitude, v.longitude, t);
@@ -151,11 +164,20 @@ namespace GargantuaSystem
             Vector3d pos = v.CoMD;
             Vector3d up = (pos - body.position).normalized;
             Vector3d east = (body.GetWorldSurfacePosition(v.latitude, v.longitude + 0.001, v.altitude) - body.GetWorldSurfacePosition(v.latitude, v.longitude, v.altitude)).normalized;
-            Vector3d target = east * (Speed * Math.Cos(v.latitude * Math.PI / 180)) + up * Math.Min(depth * 0.5, 60);
-            Vector3d acc = (target - v.srf_velocity) * 1.5 + up * FlightGlobals.getGeeForceAtPosition(pos).magnitude;
+            double g = FlightGlobals.getGeeForceAtPosition(pos).magnitude;
+            double groundSpeed = Speed * Math.Cos(v.latitude * Math.PI / 180);
+            double surfaceRise = WaveHeight(v.latitude, v.longitude, t + 0.5) - WaveHeight(v.latitude, v.longitude, t - 0.5); // m/s
+            Vector3d rel = v.srf_velocity - east * WaterSpeed(h, groundSpeed) - up * surfaceRise;
+            double relUp = Vector3d.Dot(rel, up);
+            Vector3d acc = up * (g * Math.Min(depth / FloatDepth, BuoyMax) - VertDamp * relUp) - (rel - up * relUp) * HorizDrag;
             if (acc.magnitude > 40) acc = acc.normalized * 40;
             foreach (Part p in v.parts)
                 if (p.rb != null) p.rb.AddForce(acc, ForceMode.Acceleration);
+#if GARGSYS_DEBUG
+            if (v.isActiveVessel && Time.frameCount % 100 == 0)
+                Debug.Log("[GargantuaSystem] MillerWaves debug: h " + h.ToString("F0") + " alt " + v.altitude.ToString("F0") + " vUp "
+                    + v.verticalSpeed.ToString("F1") + " vHor " + v.horizontalSrfSpeed.ToString("F1") + " rise " + surfaceRise.ToString("F1"));
+#endif
         }
 
         static double Along(double latRad) => 0.75 + 0.15 * Math.Sin(7 * latRad) + 0.10 * Math.Sin(13 * latRad + 1);
@@ -169,6 +191,7 @@ namespace GargantuaSystem
             double hCrest = WaveHeight(0, crestNow, Planetarium.GetUniversalTime());
             ok &= hCrest > 0.6 * CrestHeight && WaveHeight(0, crestNow + 36, Planetarium.GetUniversalTime()) < 1;
             ok &= Math.Abs(TimeToNextCrest(0, crestNow + 1, Planetarium.GetUniversalTime()) - 1 / angularSpeed) < 1;
+            ok &= WaterSpeed(CrestHeight, Speed) > 0.5 * Speed && WaterSpeed(CrestHeight, Speed) < 0.8 * Speed && WaterSpeed(2, Speed) < 0.02 * Speed;
             if (!ok) Debug.LogError("[GargantuaSystem] MillerWaves: self-check do perfil FALHOU (crista " + hCrest.ToString("F0") + " m)");
         }
 
