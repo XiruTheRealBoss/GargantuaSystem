@@ -5,7 +5,7 @@
 <h1 align="center">Gargantua System</h1>
 
 <p align="center">
-  <em>"Those aren't mountains... they're waves."</em><br>
+  <em>"It´s not possible... no, it's necessary."</em><br>
   An <b>Interstellar</b>-inspired planet pack for <b>Kerbal Space Program</b>
 </p>
 
