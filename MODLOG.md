@@ -176,3 +176,8 @@
 - Verificado (log de debug com a nave Onda H): sobe com a frente (vUp acompanha a subida), chega à crista a ~1000 m, a crista passa e a nave desce pela encosta de trás uns 5 m abaixo da superfície, freando de 62 para 20 m/s. Abaixo de 2 m de onda, o mar stock assume.
 - Self-check novo: velocidade da água na crista entre 0,5c e 0,8c e ~0 com onda de 2 m.
 - Verificado também com kerbal em EVA (Valentina): sobe até ~1000 m, desce com a água e volta a boiar no mar stock (onda 2 m, 0 m/s). Confirmado pelo usuário no jogo ("funcionou"). Print: docs/screenshots/miller_wave_eva.png. Nave pousada no fundo raso não testada.
+
+## 2026-10-17 — Fase 5: entrega
+- Pulsar movida para 1E11 m (e 0). A 6,2E10 m, a SOI dela (~a·(m/M)^0,4 ≈ 1,4E10 m) chegava à órbita de Mann. Agora a SOI tem ~2,3E10 m, longe de Mann (7E10) e da boca B (1,5E11). Verificado: save carrega e a nave Teste Pulsar continua em órbita dela; sem exceções do mod.
+- README.md (inglês, com resumo em português), LICENSE (MIT + CC-BY-4.0), CHANGELOG.md (0.9.0), GargantuaSystem.version (KSP-AVC, 1.12.x), GargantuaSystem.netkan (`$kref` com o usuário do GitHub a preencher), docs/TESTING.md (checklist ✅/⬜).
+- O plano dizia "sem plugin C#", mas as ondas móveis de Miller e os jatos da pulsar não dão para fazer com Kopernicus. O plugin GargantuaWaves.dll ficou só com essas duas coisas.

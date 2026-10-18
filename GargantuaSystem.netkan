@@ -1,0 +1,30 @@
+{
+    "spec_version": "v1.18",
+    "identifier": "GargantuaSystem",
+    "name": "Gargantua System",
+    "abstract": "Interstellar-inspired planet pack: Gargantua black hole, Miller's giant waves, Mann, Edmunds, Pantagruel and a pulsar.",
+    "author": "icaro",
+    "$kref": "#/ckan/github/REPLACE_WITH_GITHUB_USER/GargantuaSystem",
+    "$vref": "#/ckan/ksp-avc",
+    "license": [ "MIT", "CC-BY-4.0" ],
+    "tags": [ "planet-pack", "graphics" ],
+    "depends": [
+        { "name": "Kopernicus" },
+        { "name": "ModuleManager" },
+        { "name": "Singularity" },
+        { "name": "KopernicusExpansionContinueder" }
+    ],
+    "recommends": [
+        { "name": "Scatterer" },
+        { "name": "EnvironmentalVisualEnhancements" }
+    ],
+    "suggests": [
+        { "name": "ParallaxContinued" },
+        { "name": "ParallaxContinued-Terrain-Textures" },
+        { "name": "ParallaxContinued-Scatter-Textures" },
+        { "name": "SigmaReplacements-SkyBox" }
+    ],
+    "install": [
+        { "find": "GargantuaSystem", "install_to": "GameData", "filter": [ "Cache" ] }
+    ]
+}
