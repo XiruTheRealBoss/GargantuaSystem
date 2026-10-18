@@ -26,11 +26,11 @@ world warmed by the star **Pantagruel**. A spinning **pulsar** lights the dark w
 | | |
 |:---:|:---:|
 | ![Gargantua seen from Mann's orbit](docs/images/gargantua.jpg) | ![A giant tidal wave on Miller](docs/images/miller_wave.jpg) |
-| **Gargantua**, from Mann's orbit | **Miller**: the wave arrives |
+| **Gargantua**, from Mann's orbit | **Miller**: Tsunami |
 | ![Mann's icy limb](docs/images/mann.jpg) | ![Miller's ocean under Gargantua's light](docs/images/miller_ocean.jpg) |
-| **Mann**: glaciers and frozen clouds | **Miller**: light from the disk on the water |
+| **Mann**| **Miller** |
 | ![Edmunds' desert](docs/images/edmunds.jpg) | ![The pulsar's jets](docs/images/pulsar.jpg) |
-| **Edmunds**: rocky desert under Pantagruel | **The pulsar** and its jets |
+| **Edmunds** | **The pulsar** |
 
 <sub>All images are in-game screenshots (UI hidden), lightly colour graded.</sub>
 
@@ -48,7 +48,7 @@ world warmed by the star **Pantagruel**. A spinning **pulsar** lights the dark w
 
 ## Celestial bodies
 
-| Body | What it is |
+| Body | Quick Description |
 |---|---|
 | Gargantua | Supermassive black hole |
 | Miller | Shallow ocean world, tidally locked, giant tidal waves |
