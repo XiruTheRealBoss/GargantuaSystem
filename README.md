@@ -84,7 +84,7 @@ CKAN (when published), or copy `GameData/GargantuaSystem` into your `GameData`. 
 - Textures: `uv run tools/gen_textures.py`, `uv run tools/gen_planets.py`, `uv run tools/gen_clouds.py`,
   `uv run tools/gen_skybox.py`.
 - Plugin (waves + pulsar jets): `dotnet build -c Release` in `src/GargantuaWaves` (net472; set `-p:KSPDIR=...`).
-- Manual test checklist: [docs/TESTING.md](docs/TESTING.md). Development journal: [MODLOG.md](MODLOG.md).
+- Development journal: [MODLOG.md](MODLOG.md).
 
 ## License
 
