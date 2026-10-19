@@ -19,7 +19,7 @@ namespace GargantuaSystem
 
         object singularity;
         FieldInfo cubemapField, loadedField, materialField;
-        Cubemap sharp;
+        RenderTexture sharp; // GPU-only: a Cubemap copy would also keep a CPU-side buffer of the same size
         float giveUpAt;
 
         void Start()
@@ -48,7 +48,9 @@ namespace GargantuaSystem
                 if (mat == null || mat.GetTexture(CubeMapId) != src) continue;
                 if (sharp == null)
                 {
-                    sharp = new Cubemap(src.width, src.format, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+                    sharp = new RenderTexture(src.width, src.width, 0, RenderTextureFormat.ARGB32)
+                        { dimension = UnityEngine.Rendering.TextureDimension.Cube, useMipMap = false, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
+                    sharp.Create();
                     for (int face = 0; face < 6; face++) Graphics.CopyTexture(src, face, 0, sharp, face, 0);
                 }
                 mat.SetTexture(CubeMapId, sharp);
@@ -63,7 +65,7 @@ namespace GargantuaSystem
 
         void OnDestroy()
         {
-            if (sharp != null) Destroy(sharp);
+            if (sharp != null) sharp.Release();
         }
     }
 }
